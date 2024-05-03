@@ -1,0 +1,82 @@
+\chapter*{Evaluation}
+\addcontentsline{toc}{chapter}{Evaluation}
+
+Here I split the stereo system's application into three scenarios:
+\begin{itemize}
+    \item Low altitude hover
+    \item Low altitude slow lateral movement
+    \item Low altitude vertical ascent / descent
+\end{itemize}
+
+So self-evidently the stereo is going to fly at low altitudes. To get the exact boundaries of the performance one can simply look at existing stereo algorithm performance metrics:
+
+\section{Max Drone Height for Stereo View}
+As is widely known in literature a depth value can be derived from a stereo disparity result using the following formula:
+
+\begin{equation}\label{eq:1.0}
+    z = \frac{f \cdot b}{d}
+\end{equation}
+
+Where z is the depth of a perceived point, d the measured disparity, f the focal length in pixels and b the baseline of the two stereo cameras.
+
+Taking the derivative of z w.r.t. d we get
+
+\begin{equation}
+    \frac{\partial z}{\partial d} = - \frac{f  \cdot b}{z^2}
+\end{equation}
+
+And substituting (\ref{eq:1.0}) into d we get for the depth error:
+
+\begin{equation}
+    {\partial z} = \frac{z^2}{f  \cdot b}\partial d
+\end{equation}
+
+Leaving away the sign as for our application there lies equal danger in a point being perceived too close and too far away.
+
+And for the maximum height:
+
+\begin{equation}
+    z_{\text{max}} = \sqrt{\frac{\Delta z_{\text{max}} \cdot b \cdot f}{\Delta d}}
+\end{equation}
+
+Assuming a standard stereo camera and considering the setup which was initially installed on the modalAI Sentinel drone that I worked with we have a focal length of 256 pixels and a baseline of 9.2cm.
+
+Thus when assuming a disparity error of 0.25 pixels and allowing a maximum rock or dent size of 10cm we get for the maximum altitude:
+
+\begin{equation}
+    z_{\text{max}} = \sqrt{\frac{0.1m \cdot 0.092 m \cdot 256}{0.25}} = 3.069m
+\end{equation}
+
+So with the stereo setup with this baseline a maximum altitude of 3.069 meters can be reached while still detecting mission threatening roughness. As described above this matches the desired application of the stereo setup.
+
+% Show plot different depth errors for different heights
+% Show images of practice with lsd
+
+
+
+\section{Baseline Analysis}
+The baseline faces two main constraints:
+\begin{itemize}
+    \item The baseline has to be large enough for the drone to detect ground roughness of mission threatening size at a safe minimal altitude.
+    \item Yet it also needs be small enough to get a decent stereo image when hovering just above the ground.
+\end{itemize}
+
+\subsection{Baseline Minimum}
+
+Using the same formula as above and rearranging it for the baseline we get:
+
+\begin{equation}
+    b = \frac{z^2}{f \cdot \Delta z} \Delta d
+\end{equation}
+
+So the minimum baseline curve looks like this:
+
+\subsection{Baseline Maximum}
+
+Looking at the stereo setup as two pinhole cameras the setup looks like this:
+
+% Make image using matcha.io
+
+This leads to the following formula for the fov overlap:
+
+

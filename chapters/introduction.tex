@@ -1,0 +1,22 @@
+\chapter{Introduction}
+\label{sec:introduction}
+%\chapter{Einleitung}
+%\label{sec:einleitung}
+
+With the Ingenuity rotorcraft's lifecycle coming to an end the question about future mars rotorcrafts and their capabilities draws ever closer. 
+
+For future large distance missions NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to fly farther distances with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. The LOng Range NAvigation (LORNA) project that I have been involved with is working on a concept to tackle these points while dealing with the constraints that rotorcraft missions on Mars provide us with.
+
+On a high level the LORNA project consists of three parts. 
+
+\begin{enumerate}
+    \item xVIO: State Estimator - Merges camera images, IMU measurements and laser range finder information using an extended Kalman filter.
+    \item Landing Site Detection Pipeline - Uses structure from motion to aggregate point clouds and detect landing sites on the gathered data.
+    \item Autonomous Framework - Handles all high level flight behaviors and represents the interface between the flight controller, mission plan, landing site detector, system's healthguard and more.
+\end{itemize}
+
+In this thesis I put emphasis on the ladder two topics working with ground truth poses from the simulation environment.
+
+Flying a rotorcraft on Mars is of course no new endeavor to NASA as the 72 successful mission flown by Ingenuity demonstrate. In contrast to Ingenuity however this work thrives towards the fully integrated usage of a landing site detection pipeline in an autonomous framework. This allows for a safe and reliable landing procedure lightening the constraints on the mission flown as more risks can thus be taken.
+
+The intention is to fly the drone with the structure from motion pipeline the majority of the time as the variable baseline allows us to get lower variance images at higher altitudes. Stereo has however the advantage of not needing to move laterally allowing it to provide images both in hover as well as ascending and descending states. In addition the fixed stereo baseline and mechanically aligned views reduce the error from image alignment.

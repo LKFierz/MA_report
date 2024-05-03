@@ -1,0 +1,8 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+%\chapter*{Zusammenfassung}
+%\addcontentsline{toc}{chapter}{Zusammenfassung}
+
+An autonomous rotorcraft literally stands or falls on it’s reliable landing capabilities. When that same rotorcraft is on Mars, this procedure cannot fail even once. The LORNA (Long Range Navigation) project tackles this problem by introducing a Landing Site Detection (LSD) mechanism which aggregates Structure From Motion (SFM) point clouds into a multi resolution depth map and performs landing site segmentation on the collected depth information. In this master’s thesis we incorporated this landing site detection pipeline into an autonomous framework and implemented a behavior tree based landing mechanism to safely and efficiently select, verify and discard detected landing sites. Furthermore the pipeline was enhanced using a stereo camera depth input alternative to SFM for lower altitudes to remove the necessity of lateral motion in order to perceive depth. The software was tested extensively in a gazebo simulation on different synthetic as well as recorded environments and different behaviors were considered and analyzed throughout various Monte Carlo iterations. The contributions in this work aim at enabling future mars rotorcrafts to autonomously and reliably land at safe locations thus enabling a more daring aerial exploration of the red planet.
+% TODO: if I can add tests on real hardware.
+% Also polish
