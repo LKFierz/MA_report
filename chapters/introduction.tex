@@ -5,7 +5,7 @@
 
 With the Ingenuity rotorcraft's lifecycle coming to an end the question about future mars rotorcrafts and their capabilities draws ever closer. 
 
-For future large distance missions NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to fly farther distances with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. The LOng Range NAvigation (LORNA) project that I have been involved with is working on a concept to tackle these points while dealing with the constraints that rotorcraft missions on Mars provide us with.
+For future large distance missions NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to cover farther distances with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. The LOng Range NAvigation (LORNA) project that I have been involved with is working on a concept to tackle the aforementioned points while dealing with the constraints that rotorcraft missions on Mars provide us with. These are namely a limitation on the size and weight of the drone, a constraint on compuational power due to the deployment on limited embedded processors and lastly a delay in communication which makes adaptive remote control from Earth impossible.
 
 On a high level the LORNA project consists of three parts. 
 
@@ -13,10 +13,14 @@ On a high level the LORNA project consists of three parts.
     \item xVIO: State Estimator - Merges camera images, IMU measurements and laser range finder information using an extended Kalman filter.
     \item Landing Site Detection Pipeline - Uses structure from motion to aggregate point clouds and detect landing sites on the gathered data.
     \item Autonomous Framework - Handles all high level flight behaviors and represents the interface between the flight controller, mission plan, landing site detector, system's healthguard and more.
-\end{itemize}
+\end{enumerate}
 
 In this thesis I put emphasis on the ladder two topics working with ground truth poses from the simulation environment.
 
-Flying a rotorcraft on Mars is of course no new endeavor to NASA as the 72 successful mission flown by Ingenuity demonstrate. In contrast to Ingenuity however this work thrives towards the fully integrated usage of a landing site detection pipeline in an autonomous framework. This allows for a safe and reliable landing procedure lightening the constraints on the mission flown as more risks can thus be taken.
+Flying a rotorcraft on Mars is of course no new endeavor to NASA as the 71 successful flights performed by Ingenuity demonstrate. In contrast to Ingenuity however this work thrives towards the fully integrated usage of a landing site detection pipeline in an autonomous framework. This allows for a safe, reliable and most importantly autonomous landing procedure lifting the heavy safety constraints on the mission flown and reducing pre flight overhead considerably.
 
-The intention is to fly the drone with the structure from motion pipeline the majority of the time as the variable baseline allows us to get lower variance images at higher altitudes. Stereo has however the advantage of not needing to move laterally allowing it to provide images both in hover as well as ascending and descending states. In addition the fixed stereo baseline and mechanically aligned views reduce the error from image alignment.
+\section{Objective}
+
+Concretly the endeavour in this thesis was to create a front to back landing mechanism that combines the existing vision based landing site detection procedure with the autonomous framework. In order to accomplish this, both the landing site detection mechanism as well as the autonomy had to be altered. Last but not least given that the structure from motion depth generation methodology depends on lateral movement, which is less desirable for a drone navigating at low altitudes in unfamiliar surroundings, the utilization of a stereo camera presents a viable solution to attain real-time depth perception without necessitating lateral displacement.
+
+The conclusive high level objective of the LORNA project is to autonomously fly a high altitude long distance science mission, using a map based localization enhanced state estimator. Whilst flying, landing sites are acquired and simultaneously ordered according to the respective quality. Initiating the adaptive autonomous landing sequence, landing sites can then be chosen and verified at low altitudes using a stereo camera. In case of successful verification the rotorcraft can land at the selected location. 

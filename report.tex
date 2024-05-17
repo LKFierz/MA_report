@@ -66,21 +66,31 @@
 \setcounter{tocdepth}{2}
 
 \tableofcontents
+\input{chapters/acronyms.tex}
+\clearpage
 % \cleardoublepage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Chapters standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\input{chapters/preface}
-\cleardoublepage
+% \input{chapters/preface}
+% \cleardoublepage
 \input{chapters/abstract}
 \cleardoublepage
-\input{chapters/chapter}
-\cleardoublepage
+\pagestyle{fancy}
+\pagenumbering{arabic}
+% \input{chapters/chapter}
+% \cleardoublepage
+\input{chapters/introduction.tex}
+\clearpage
 \input{chapters/related_work.tex}
-% Introductin
-% Related Work
-% Contribution
+\clearpage
+\input{chapters/contribution.tex}
+\clearpage
+\input{chapters/setup.tex}
+\clearpage
+\input{chapters/methodology.tex}
+\clearpage
 % Method
 % Experiments
 % Results
@@ -95,20 +105,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Chapters custom
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\pagestyle{fancy}
-\pagenumbering{arabic}
 
-% TODO Add your own chapters here
-% \input{chapters/introduction}
-% \cleardoublepage
-% \input{chapters/chapter}
-% \cleardoublepage
-% \input{}
-% \cleardoublepage
-% \input{}
-% \cleardoublepage
-% ...
-%
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Bibliography

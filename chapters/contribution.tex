@@ -1,0 +1,16 @@
+\chapter{My Contribution}
+
+In short my contribution in this thesis can be summarized as follows:
+
+\section{Interface Autonomy-LSD}
+The autonomy was altered in a way to receive the detected landing sites and order them according to an adequate heuristic to determine the best landing site at any given time.
+\section{Landing Site Detection Output}
+The landing site detection output initially only consisted of the location of the landing site. This output was enhanced to consider many more characteristics in order for the autonomy to make an informed decision with regards to what spot to select.
+\section{Stereo Camera Depth Alternative}
+Implemented a stereo camera in the simulated drone model in order to get stereo sensor images. Created a stereo camera depth node as an alternative to SFM to supply the landing site detection algorithm with a pointcloud at low altitudes without the need for lateral motion. 
+\section{Additional}
+Other contributions indirectly connected to the project itself but necessary for the implementation:
+\subsection{Simulation Setup}
+As just recently the switch was made to Gazebo Garden the entire visual pipeline (SFM + LSD) had never run with this simulation environment before. Therefore I implemented the changes necessary to run the landing site detection procedure on the Gazebo sensor input. Additionally whilst implementing the stereo camera and attempting to put in place a simulated depth camera for ground truth it became apparent that the Gazebo depth camera implementation is incorrect neglecting the set intrinsic parameters. Altering Gazebo's source code the implementation could be fixed.
+\subsection{Deployment of LSD pipeline onto Embedded System}\label{subsubsec:voxl2}
+The entire software stack of this project has to run on an embedded system on the future rotorcraft. Currently the used processor is modalAI's voxl2. Both the structure from motion as well as the landing site detection software did not run out of the box having an incompatible dependency handling with the voxl's AARCH architecture. Resolving these issues I was able to run the landing site detection pipeline with the structure from motion depth supply on the voxl2 using a collected rosbag of images and IMU poses.

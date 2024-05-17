@@ -1,3 +1,97 @@
 \chapter{Methodology}
 \label{sec:methodology}
 
+\section{Landing Site Properties}\label{sec:LSproperties}
+
+Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{sec:setup:LSD} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
+
+Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
+
+I decided on the following properties to be output alongside the site's location:
+
+\begin{itemize}
+    \item Uncertainty
+    \item Roughness
+    \item Size
+    \item Obstacle Altitude
+\end{itemize}
+The final landing site detection output is a custom landing site ROS message containing the above mentioned characteristics of the detected spot.
+
+\subsection{Roughness}
+
+The roughness value the exact value already used for the hazard segmentation step in the landing site detection. 
+
+\subsection{Uncertainty}
+
+\subsection{Size}
+
+\subsection{Obstalce Altitude}
+
+The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
+
+\section{Stereo Camera Depth Perception} \label{sec:StereoDepth}
+
+\subsection{Stereo Camera Necessity}
+\subsection{Stereo Camera Analysis}
+\subsubsection{Theoretical Analysis}
+\subsubsection{Qualitative Practical Analysis}
+
+\section{Autonomous Landing Procedure}
+
+With the enhanced structure of the LSD output and having implemented a stereo camera as a low altitude alternative to SFM, the main contribution of this work could be faced.
+
+\subsection{Landing Site Handling}
+
+As shown in \cref{sec:setup:autonomy} the autonomy is structured in a hierarchical and modular way. The current state of the state machine determines the specific task to be executed in that state's execution node. As the landing sites are constantly received alongside the mission tasks performed, they have to be processed in a separate thread. This is handled by a landing site manager (LSM) singleton class which ranks the landing sites according to a loss function and stores them in a heap buffer.
+
+\subsubsection{Landing Site Heuristic}\label{subsubsec:LandingSiteHeuristic}
+
+As mentioned in \cref{sec:LSproperties} the autonomy receives landing sites with the following properties:
+
+\begin{itemize}
+    \item Position
+    \item Roughness
+    \item Uncertainty
+    \item Size
+    \item Obstacle Altitude
+\end{itemize}
+
+From these properties the characteristics that comprise the final heuristic are:
+
+\begin{itemize}
+    \item Current Distance to Drone
+    \item Roughness
+    \item Uncertainty
+    \item Size
+    \item Verification Altitude
+\end{itemize}
+
+\textbf{Current Distance to Drone}
+
+Each iteration the current distance to the drone's position is calculate for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100m. Note that in practice landing sites fell off when farther away than 100m which yields a valid normalization. %TODO
+\clearpage
+
+\textbf{Roughness}
+%TODO
+
+The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
+
+\textbf{Uncertainty}
+
+The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
+
+\textbf{Size}
+
+Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However unlike the two preceeding properties it is not normalized but simply denotes the metric radius of the largest circle fitted around a given landing site. This is achieved in LSD by performing a distance transform on the landing site image.
+
+In order to normalize this value the maximum landing site size is retained and each landing site's size is divided by it in order to achieve the normalized size indication.
+
+\textbf{Verification Altitude}
+
+A site's verificaiton altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. Similar to the uncertainty metric the verification altitude indicates how certain we can be about a detected landing site as spots detected at lower flight altitudes are more likely correct due the reduced depth error. 
+
+\subsubsection{Landing Site Input Processing}
+The landing site manager receives the landing sites from the ROS connector within the autonomy. 
+
+\subsubsection{}
+
