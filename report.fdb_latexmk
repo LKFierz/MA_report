@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex report"] 1715940787.39737 "report.aux" "report.bbl" "report" 1715940789.56553 0
+["bibtex report"] 1715952103.81498 "report.aux" "report.bbl" "report" 1715952154.04598 0
   "./bibliography/IEEEtranN.bst" 1652713271 63140 0fbee010820069093ff128821573b034 ""
   "./bibliography/references.bib" 1715860214.58682 5765 a9ed66238952e45a5b109a4bc6e87cf1 ""
-  "report.aux" 1715940789.13431 9567 acedfff5d87405e5fc4069ef68f37ca8 "pdflatex"
+  "report.aux" 1715952153.62628 11594 25343f64465d722e186253034dd290f8 "pdflatex"
   (generated)
   "report.bbl"
   "report.blg"
   (rewritten before read)
-["pdflatex"] 1715940787.55088 "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" "report.pdf" "report" 1715940789.56574 0
+["pdflatex"] 1715952151.42887 "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" "report.pdf" "report" 1715952154.04619 0
   "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" 1715940553.51993 3818 6e58b311947795b17e47e026ffa4df03 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -200,23 +200,29 @@
   "/usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt" 1715001783 8221443 e067fdfb8c20f28b1c56333bfcd3a119 ""
   "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
   "chapters/abstract.tex" 1714430920 1473 e1d6996a9e0e3138233e469f6391707f ""
-  "chapters/acronyms.tex" 1715934781.65152 619 b2286e60d9abc87ae769fb8a3b780d5d ""
+  "chapters/acronyms.tex" 1715951669.44901 657 74ebdb7886ff7b1b2ff82a32af6cd878 ""
   "chapters/contribution.tex" 1715783666.38694 2240 f3a95a674fa4f8a189278f864acc2d8e ""
   "chapters/introduction.tex" 1715858507.66155 3375 4880846a923a3e54381b90115b56524d ""
   "chapters/methodology.tex" 1715938704.37575 4930 440341d93903ef36cd8859ed4d9beb9b ""
   "chapters/related_work.tex" 1715940044.31179 4886 2e93e36dfb492cd127a5b139a3f6a13a ""
-  "chapters/setup.tex" 1715940785.22559 4336 b9de191219138ddace45cd758e86c764 ""
+  "chapters/setup.tex" 1715952151.27014 6800 26f7893a3a4110e6b367dbe0b86aef7d ""
   "images/examples/eth_logo.pdf" 1715940524.39389 23696 7e7913b04ccd98dd60e95740d44ce137 ""
   "images/examples/rsl_logo.pdf" 1715940524.39531 419511 d75ec7e5232fd6916c2941ab621f8ae5 ""
+  "images/setup/BA.png" 1715940753.23168 20870 53374f679f9e5d0e7cb46f2d7e3f1b6a ""
+  "images/setup/DEM.png" 1715941352.3358 90793 d4f935135dddf443dc084a29f844c8cd ""
   "images/setup/GZ_flowchart.png" 1715860987.20802 30314 d0e0f84dcbef873983a5482f1fc99b69 ""
+  "images/setup/ls_map.png" 1715949867.00012 114851 dc925a0bf4749691036bfb28539b5643 ""
+  "images/setup/ls_map_nms.png" 1715949888.05467 120013 db580cd6746be4d2b1df741e04df9d46 ""
+  "images/setup/lsd_debug_image.png" 1715951583.48201 386921 04e3162c82e355dcb50ecd941f989cdd ""
+  "images/setup/lsd_debug_reference.png" 1715951583.49556 1338585 577978385ae35791da54121cefd48771 ""
   "images/setup/setup_flowchart.png" 1715782569.88658 629749 5a3713ec32d88315caa6c0883cc68c29 ""
   "packages/ethrsl.sty" 1711749089 4555 ca65a2a84d71ea0eb91b62f70e7ce5b0 ""
   "preambles/rsl_preamble.tex" 1652713271 1587 0f907ff3f8a16b9b494ff4bfb7bd44fb ""
-  "report.aux" 1715940789.13431 9567 acedfff5d87405e5fc4069ef68f37ca8 "pdflatex"
-  "report.bbl" 1715940787.54572 3044 7271380650ad29350c6fe2e4c1eb45a3 "bibtex report"
-  "report.out" 1715940789.13576 5340 89d374442f0b2e41d495782138b6009d "pdflatex"
+  "report.aux" 1715952153.62628 11594 25343f64465d722e186253034dd290f8 "pdflatex"
+  "report.bbl" 1715952103.98688 3044 7271380650ad29350c6fe2e4c1eb45a3 "bibtex report"
+  "report.out" 1715952153.62781 5379 81a297c7fb9471b5c41bfa9dae46f733 "pdflatex"
   "report.tex" 1715940553.51993 3818 6e58b311947795b17e47e026ffa4df03 ""
-  "report.toc" 1715940789.13618 3482 4b461ba725bc6fd7ad6534af0928467f "pdflatex"
+  "report.toc" 1715952153.62829 3700 29bcae5c603a692a6d253432605d49c2 "pdflatex"
   (generated)
   "report.aux"
   "report.log"
