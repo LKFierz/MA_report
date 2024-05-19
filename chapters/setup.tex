@@ -121,7 +121,19 @@ On the right is the above mentioned binary landing site map. Green indicates val
 
 The autonomous framework was developed within the LORNA project. It is the overarching instance governing all the necessary behaviors and constituting the interface between all the different nodes of the process. It is connected to the flight controller through the Mavros wrapper of the Mavlink protocol. With this connection it can send waypoints and parameter updates to the flight controller.
 In addition to the in \cref{fig:lorna_setup} shown connections it also communicates with a healthguard node keeping track of the systems health state and alerting in case of anomalies.
-% TODO
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.45]{images/setup/autonomy.png}
+    \caption{Simplified Structure of the Autonomy}
+    \label{fig:autonomy}
+\end{figure}
+
+The core of the autonomy is the state machine as depicted in \cref{fig:autonomy}. In each state the respective node is executed which most often is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff as well as landing nodes. As indicated in bold, the landing node is the most crucial node in this work as this is where the landing behavior using the landing sites is executed.
+
+In a separate process the landing site manager processes incoming landing sites. The given setup before this thesis already had the template in place. Throughout this work I then replaced the dummy functionality of the landing site manager and the landing node with the final behaviors.
+
+Lastly there the connector threads interact with the flight controller through Mavros and the ROS connector interacting with all the other nodes.
 
 
 

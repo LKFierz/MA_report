@@ -432,6 +432,11 @@ INPUT ./images/setup/lsd_debug_image.png
 INPUT ./images/setup/lsd_debug_image.png
 INPUT ./images/setup/lsd_debug_image.png
 INPUT ./images/setup/lsd_debug_image.png
+INPUT ./images/setup/autonomy.png
+INPUT ./images/setup/autonomy.png
+INPUT ./images/setup/autonomy.png
+INPUT ./images/setup/autonomy.png
+INPUT ./images/setup/autonomy.png
 INPUT ./chapters/methodology.tex
 INPUT ./chapters/methodology.tex
 INPUT chapters/methodology.tex
