@@ -5,31 +5,84 @@ As mentioned above the endeavour of this thesis was to put together a front to b
 
 \section{Stereo Camera Depth Perception} \label{sec:StereoDepth}
 
-The autonomous framework\ref{sec:setup:autonomy} allows us to fly independent missions at cruise altitude of 100m+. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
+The autonomous framework\citep{Autonomy} allows us to fly independent missions at cruise altitude of 100m+. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
 
-At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk as the drone does not retain any hazard information. 
-
-\subsection{Stereo Camera Necessity}
+At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because the drone does not retain any hazard information due to the limitations of computational complexity present for mars flights. 
 
 In the following a qualitative analysis of the comparison of SFM and stereo camera depth is layed out:
 
-\subsubsection{Lateral Motion}
+\subsection{Lateral Motion}
 
-First and foremost when flying a drone in unknown, potentially dangerous terrain at low altitudes the largest
+As already mentioned above the need for lateral motion in itself is an undesirable necessity for a rotorcraft in unknown terrain. 
 
-\subsubsection{Uncertainty}
+In this setup the structure from motion approach is based on a keyframe buffer which needs to be filled with image-pose pairs at different horizontal positions in order to start acquiring depth information. The current setting in the implementation \citet{SFM} uses 6 keyframes. Therefore for a single point cloud it is necessary to move laterally 6 times in order to start perceiving depth. 
 
-\subsubsection{Lateral motion}
+\subsection{Software vs Hardware Depth Perception}
 
-\subsection{Stereo Camera Analysis}
-\subsubsection{Theoretical Analysis}
-\subsubsection{Qualitative Practical Analysis}
+Structure from Motion, being a software node that relies on camera poses supplied by a state estimator, is by design subject to inaccuracies. A depth node based on a stereo camera on the other hand works with a fixed rigid baseline between the camera views. Thus for low altitude flights that bear the danger of collision, a more robust hardware approach is preferred.
+
+\subsection{DEM Conversion}
+
+As described in \cref{subsubsec:setup:aggregation} the multi-resolution DEM used for depth aggregation in LSD is based on Optimal Mixture of Gaussian cells and thus converges over time. 
+
+According to \cref{subsubsec:setup:haz_seg} the landing sites chosen are likely on terrain with low uncertainty. Because of this landing sites are more likely to be detected and have in general a better quality when the terrain perceived has been viewed.
+
+When a landing site has been selected we need to make sure that the landing site is actually correctly detected and of good quality. For this we would like to (re-)detect landing sites on rather converged terrain. Structure from Motion needs constant lateral motion for this. A stereo camera depth node simply hovers in place for any given amount of time.
+
+\subsubsection{Efficiency}
+
+All in all the stereo camera setup allows us to perceive a landing site at course altitude and after having traversed horizontally to that location, we can simply descent to a stereo camera friendly altitude for the verification. Compared to repeated lateral coverage of the area in question this is a huge increase in efficiency.
+
+\subsection{Theoretical Analysis}
+
+When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lense. 
+
+Assuming a perfectly calibrated and rectified camera there is still always an inaccuracy in the depth estimation arising from the disparity error.
+
+From a given disparity estimate the depth error is derived as follows:
+
+\begin{equation}\label{eq:depth_from_disp}
+    z = \frac{f \cdot b}{d}
+\end{equation}
+
+Where b is the z is the depth estimate, b is the baseline, f is the focal length and d is the disparity value.
+
+Taking the derivative of z w.r.t. d we get
+
+\begin{equation}
+    \frac{\partial z}{\partial d} = - \frac{f  \cdot b}{z^2}
+\end{equation}
+
+And substituting (\cref{eq:depth_from_disp}) we get:
+
+\begin{equation}
+    {\partial z} = \frac{z^2}{f  \cdot b}\partial d
+\end{equation}
+
+Where the sign was left away as for our application there lies equal danger in a point being perceived too close and too far away.
+
+For the maximum altitude given a maximum allowable depth error this yields:
+
+\begin{equation}
+    z_{\text{max}} = \sqrt{\frac{\Delta z_{\text{max}} \cdot b \cdot f}{\Delta d}}
+\end{equation}
+
+Where $\Delta z$ is the depth error and $\Delta d$ the disparity error.
+
+The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10cm and a focal length of 256.
+
+With these properties and estimating a subpixel precision disparity error of 0.25 pixels 
+
+
+
+
+\subsection{Qualitative Practical Analysis}
 
 
 
 \section{Landing Site Properties}\label{sec:LSproperties}
 
-Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{sec:setup:LSD} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
+Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
 
 Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
 

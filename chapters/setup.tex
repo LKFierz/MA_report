@@ -26,9 +26,9 @@ Despite being able to deploy the landing site detection pipeline onto the voxl2 
 As the entire software stack of the LORNA project is dependent on ROS instead of ROS2 a bridge was used to convert the sensor information from Gazebo to ROS2 and from ROS2 to ROS.
 
 
-\section{Landing Site Acquisition Pipeline}\label{sec:setup:LSD}
+\section{Landing Site Acquisition Pipeline}\label{sec:setup:LSP}
 
-The landing site acquisition pipeline consists of two nodes. A structure from motion node \citep{SFM} which creates a pointcloud using a keyframe based stereo approach on monocular images and a landing site detector node \citep{LSD1, LSD2} which aggregates the depth measurements into a rolling buffer based multi-resolution depth map and segments landing sites on the created DEM. The found landing sites are then supplied to the autonomy. 
+The landing site acquisition pipeline consists of two nodes. A structure from motion node \citep{SFM} which creates a point cloud using a keyframe based stereo approach on monocular images and a landing site detector node \citep{LSD1, LSD2} which aggregates the depth measurements into a rolling buffer based multi-resolution depth map and segments landing sites on the created DEM. The found landing sites are then supplied to the autonomy. 
 
 \subsection{Structure From Motion (SFM)}\label{subsec:setup:SFM}
 
@@ -44,7 +44,7 @@ In a first step the keyframes are filled with the incoming images and their resp
 
 \subsubsection{SFM - Stereo Depth}
 
-The keyframes and their refined poses are then compared to the new incoming image with regards to image overlap and feature retention. Chosing the most adequate keyframe and the incoming frame, one can create a depth image. The depth image is then converted into a pointcloud and packaged together with the respective poses of the images. This allows not only to correctly locate the points in a global frame but also to derive the baseline with which that pointcloud was created.
+The keyframes and their refined poses are then compared to the new incoming image with regards to image overlap and feature retention. Chosing the most adequate keyframe and the incoming frame, one can create a depth image. The depth image is then converted into a point cloud and packaged together with the respective poses of the images. This allows not only to correctly locate the points in a global frame but also to derive the baseline with which that point cloud was created.
 
 \subsubsection{SFM - Keyframe Updates}
 
@@ -52,7 +52,7 @@ At the end of an iteration the keyframes are updated based on the aforementioned
 
 \subsection{Landing Site Detection (LSD)}\label{subsec:setup:LSD}
 
-\subsubsection{LSD - Depth Aggregation}
+\subsubsection{LSD - Depth Aggregation}\label{subsubsec:setup:aggregation}
 
 \begin{figure}[ht!]
     \centering
@@ -61,13 +61,26 @@ At the end of an iteration the keyframes are updated based on the aforementioned
     \label{fig:DEM}
 \end{figure}
 
-The foundation of the landing site detection mechanism is a rolling buffer based multi resolution depth map as indicated in \cref{fig:DEM}. Each cell in this dense elevation map (DEM) contains an optimal mixture of gaussian (OMG) state as described in \citet{LSD2}. Each base layer cell is represented with 4 cells at a higher resolution layer.
+The foundation of the landing site detection mechanism is a rolling buffer based multi resolution depth map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
 
 Each point cloud input iteration, the measurements are placed in the respective cells based on the level of detail of the perceived points. In a subsequent step the measurements are pooled up and down the resolution layers in order to make the DEM more consistent and interpolate missing values.
 
-One thing to note is that since the OMG variance decreases with an increased number of measurements, the cell values converge over time when receiving the same terrain information.
+Each cell in this dense elevation map (DEM) is comprised of an optimal mixture of gaussian (OMG) state as described in \citet{LSD2}.
 
-\subsubsection{LSD - Hazard Segmentation}
+Its update step looks like this:
+
+\begin{align}
+    S_t &= S_{t-1} + \sigma_{x_t}^{-2}\\
+    \mu_t &=  \frac{1}{S_t}\left(S_{t-1}\mu_{t-1} + \frac{x_t}{\sigma_{x_t}^2}\right)\\
+    \sigma_t^2 &=  \frac{1}{S_t}\left( S_{t-1}(\sigma_{t-1}^2 + \mu{t-1}^2) + \frac{x_t^2}{\sigma{x_t}^2} + 1 \right) - \mu_t^2
+    \label{eq:OMG_updates}
+\end{align}
+
+Where $\mu_t$ is the cell's new mean value, $\sigma_t^2$ is the cell's variance and $S_t$ defines an auxilliary variable to keep track of all past variances within a single scalar.
+
+Thus similar to Kalman filters, the OMG cells' uncertainties decline over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. 
+
+\subsubsection{LSD - Hazard Segmentation}\label{subsubsec:setup:haz_seg}
 
 On the created depth map landing sites can then be detected. This is done using a roughness and slope assessment of the perceived terrain. Roughness defines the maximum absolute altitude difference around a cell in a certain resolution layer and slope is determined by fitting a plane to the vicinity of a considered point.
 
@@ -80,7 +93,7 @@ If the roughness and slope values lie within the acceptance threshold, the spot 
     \label{fig:ls_map}
 \end{figure}
 
-\subsubsection{LSD - Landing Site Selection}
+\subsubsection{LSD - Landing Site Selection}\label{subsubsec:setup:ls_select}
 
 After applying a distance transform on the landing site map and performing non-maximum suppression on the landing site sizes, the biggest landing sites are found. Their positions are then refined one last time using a mean shift algorithm that considers roughness, uncertainty and size once again. 
 
