@@ -1,6 +1,32 @@
 \chapter{Methodology}
 \label{sec:methodology}
 
+As mentioned above the endeavour of this thesis was to put together a front to back landing procedure utilizing an existing vision based landing site detection pipeline and an autonomous framework. In order to do this, all individual software instances needed to be ready in order to combine them and achieve autonomous landing in unknown terrain.
+
+\section{Stereo Camera Depth Perception} \label{sec:StereoDepth}
+
+The autonomous framework\ref{sec:setup:autonomy} allows us to fly independent missions at cruise altitude of 100m+. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
+
+At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk as the drone does not retain any hazard information. 
+
+\subsection{Stereo Camera Necessity}
+
+In the following a qualitative analysis of the comparison of SFM and stereo camera depth is layed out:
+
+\subsubsection{Lateral Motion}
+
+First and foremost when flying a drone in unknown, potentially dangerous terrain at low altitudes the largest
+
+\subsubsection{Uncertainty}
+
+\subsubsection{Lateral motion}
+
+\subsection{Stereo Camera Analysis}
+\subsubsection{Theoretical Analysis}
+\subsubsection{Qualitative Practical Analysis}
+
+
+
 \section{Landing Site Properties}\label{sec:LSproperties}
 
 Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{sec:setup:LSD} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
@@ -27,16 +53,13 @@ The uncertainty value is also a product of the landing site detection algorithm.
 
 \subsection{Size}
 
+To determine the size of a landing site, the landing site detection algorithm performs a distance transform on the created landing site map in order to find the closest non-landing site for any found landing site. This returns the radius of the largest valid landing circle around a landing site. Calculating the physical value, the metric radius is returned as the size of a landing site.
+
 \subsection{Obstalce Altitude}
 
 The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
 
-\section{Stereo Camera Depth Perception} \label{sec:StereoDepth}
 
-\subsection{Stereo Camera Necessity}
-\subsection{Stereo Camera Analysis}
-\subsubsection{Theoretical Analysis}
-\subsubsection{Qualitative Practical Analysis}
 
 \section{Autonomous Landing Procedure}
 
