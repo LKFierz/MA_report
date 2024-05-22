@@ -76,11 +76,22 @@ With these properties and estimating a subpixel precision disparity error of 0.2
 
 
 
-\subsection{Qualitative Practical Analysis}
+\subsection{Implementation}
 
+Like Structure from Motion, the stereo depth program is a ros node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, simulation camera images and a ground truth camera pose were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed baseline.
+
+The stereo depth implementation was done using opencv's StereoSGBM algorithm. As stereo depth generation is a widely known topic I won't go into the details here.
+
+The final output of the node is a generated pointcloud in the world frame together with two poses representing the camera locations of the generated pointcloud.
+
+\subsubsection{Qualitative Practical Analysis}
+
+Once implemented the landing site detection instance could be supplied by the stereo depth node. The result can be seen in the following:
 
 
 \section{Landing Site Properties}\label{sec:LSproperties}
+
+With the low altitude depth alternative in place, the connection of the autonomy with the landing site detector could be tackled. 
 
 Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
 
@@ -111,8 +122,6 @@ To determine the size of a landing site, the landing site detection algorithm pe
 \subsection{Obstalce Altitude}
 
 The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
-
-
 
 \section{Autonomous Landing Procedure}
 
@@ -169,6 +178,9 @@ In order to normalize this value the maximum landing site size is retained and e
 A site's verificaiton altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. Similar to the uncertainty metric the verification altitude indicates how certain we can be about a detected landing site as spots detected at lower flight altitudes are more likely correct due the reduced depth error. 
 
 \subsubsection{Landing Site Input Processing}
+
+The autonomy handles the detected landing sites using a landing site manager which is constantly executed alongside the autonomys current state execution. This is shown in \cref{fig:autonomy}.
+
 The landing site manager receives the landing sites from the ROS connector within the autonomy. 
 
 \subsubsection{}
