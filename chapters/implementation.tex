@@ -1,0 +1,92 @@
+\chapter{Methodology - Autonomous Landing Procedure}\label{chapter:core_implementation}
+
+
+With the enhanced structure of the LSD output, having implemented a stereo camera as a low altitude alternative to SFM and after ensuring a correct ground truth comparison, the main contribution of this work could be faced: Bringing the visual landing site pipeline together with the autonomous framework in order to achieve reliable autonomous landing in unknown terrain.
+
+This implementation can be split into the following parts:
+\begin{itemize}
+    \item Landing Site Handling
+    \item Landing Site Heuristic
+    \item Landing Behavior
+\end{itemize}
+
+\section{Landing Site Handling}
+
+As shown in \cref{sec:setup:autonomy} the autonomy is structured in a hierarchical and modular way. The current state of the state machine determines the specific task to be executed in that state's execution node. As the landing sites are constantly received alongside the mission tasks performed, they have to be processed in a separate thread. This is handled by a landing site manager (LSM) singleton class.
+
+\subsection{Landing Site Manager}
+
+Incoming landing sites are ranked according to a loss function and stores them in a heap buffer.
+
+\section{Landing Site Heuristic}\label{subsubsec:LandingSiteHeuristic}
+
+As mentioned in \cref{sec:LSproperties} the autonomy receives landing sites with the following properties:
+
+\begin{itemize}
+    \item Position
+    \item Roughness
+    \item Uncertainty
+    \item Size
+    \item Obstacle Altitude
+\end{itemize}
+
+From these properties the characteristics that comprise the final heuristic are:
+
+\begin{itemize}
+    \item Current Distance to Drone
+    \item Roughness
+    \item Uncertainty
+    \item Size
+    \item Verification Altitude
+\end{itemize}
+
+\subsection{Current Distance to Drone}
+
+Each iteration the current distance to the drone's position is calculate for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100m. Note that in practice landing sites fell off when farther away than 100m which yields a valid normalization. %TODO
+
+\subsection{Roughness}
+%TODO
+
+The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
+
+\subsection{Uncertainty}
+
+The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
+
+\subsection{Size}
+
+Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However unlike the two preceeding properties it is not normalized but simply denotes the metric radius of the largest circle of valid landing area that can be fit around a given landing site. This is achieved in LSD by performing a distance transform on the created landing site image.
+
+In order to normalize this value the maximum landing site size is retained and each landing site's size is divided by it in order to achieve normalized size information.
+
+\subsection{Verification Altitude}
+
+A site's verificaiton altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. 
+
+The verification altitude is a useful property because of numerous reasons.
+\subsubsection{Further Indication of Certainty}
+First of all similar to the uncertainty metric the verification altitude indicates how certain we can be about a detected landing site as spots detected at lower flight altitudes are more likely correct due to the reduced depth error. Even though it might seem overlapping with the uncertainty property in this regard, these two characteristics are quite complementary as the uncertainty takes OMG convergence and camera specifics into consideration while the verificaiton altitude is a purely location based metric.
+
+\subsubsection{Landing Site Property Updates}
+As the verification altitude yields a simple and good estimation of the trustworthiness of an incoming landing site, it can be used as a flag to know, when a landing site's properties should be updated. When a landing site is redetected with a verification altitude lower than the previously stored one, the algorithm trusts it more and alters the previously stored properties to the new ones received.
+
+\subsubsection{Verification}
+
+Continuously updating the verification altitude upon redetection allows us to determine the lowest altitute, at which a landing site was redetected. This information can be used to verify that a given site was considered a valid landing spot even at low altitudes. 
+
+\section{Landing Behavior}
+
+The final landing behavior is implemented in the form of a behavior tree which allows adaptive decision making.
+
+The autonomous framework(\ref{sec:setup:autonomy}) 
+
+\subsection{Action Definition}
+
+For the finished behavior tree the following additional actions were defined. See \cref{subsubsec:setup:action_nodes} for the actions defined prior to this work.
+
+\subsubsection{AscendToClearAltitude}
+\subsubsection{ChangeAltitudeLSAction}
+\subsubsection{GetLandingSiteAction}
+\subsubsection{GetNextPatternCenterWPAction}
+\subsubsection{LandingSiteSearchAction}
+\subsubsection{LandingSiteVerificationAction}

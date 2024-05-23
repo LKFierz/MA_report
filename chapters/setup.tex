@@ -142,11 +142,47 @@ In addition to the in \cref{fig:lorna_setup} shown connections it also communica
     \label{fig:autonomy}
 \end{figure}
 
-The core of the autonomy is the state machine as depicted in \cref{fig:autonomy}. In each state the respective node is executed which most often is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff as well as landing nodes. As indicated in bold, the landing node is the most crucial node in this work as this is where the landing behavior using the landing sites is executed.
+The core of the autonomy is the state machine as depicted in \cref{fig:autonomy}. In each state the respective node is executed which most often is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff as well as the landing node. As indicated in bold, the landing node is the most crucial node in this work as this is where the landing behavior using the landing sites is executed.
 
-In a separate process the landing site manager processes incoming landing sites. The given setup before this thesis already had the template in place. Throughout this work I then replaced the dummy functionality of the landing site manager and the landing node with the final behaviors.
+In a separate process the landing site manager processes incoming landing sites. Prior to this work the landing site interface was a dummy implementation serving the framework's completeness.
 
-Lastly there the connector threads interact with the flight controller through Mavros and the ROS connector interacting with all the other nodes.
+The connector threads interact with the flight controller through Mavros and the other LORNA nodes through a ROS connector.
+
+\subsection{Behavior Tree}
+
+The behavior tree framework within the autonomy is implemented in the traditional way, each comprised of a root node, control flow nodes and action nodes resulting in a modular structure enabling tasks of tremendous complexity. Additionally decorator nodes can be used which alter a single node and function as an add-on on the same level.
+
+\subsubsection{Control Flow Nodes}
+
+The most imported control flow nodes which were used in this thesis are the following:
+
+\begin{itemize}
+    \item \textbf{Fallback Node}: Attempts to execute first child node and if successfull returns a success state. Else it continues to the next child node. If no child node was successfull it returns the failure state. A boolean operator analogy for this would be the logical OR, stopping at the first successful entity.
+    \item \textbf{Sequence Node}: Executes one child after another. It only returns the success state if all children nodes ran successfully. Otherwise it returns false. Here an analogy would be the logical AND boolean operator.
+\end{itemize}
+
+\subsubsection{Decorator Nodes}
+
+The most important decorator nodes are:
+
+\begin{itemize}
+    \item \textbf{Inverter Node}: Inverts the output of an action node. Boolean analogon would be the ! (not) operator.
+    \item \textbf{Repeat Node}: Repeats a node a number of times until fails or a timeout is reached. 
+    \item \textbf{Retry Node}: Similiar to the repeat node loop but it repeats the node a number of times only until it succeeds or a defined timeout is reached.
+    \item \textbf{Timeout Node}: Adding a timeout to an action node which otherwise wouldn't be temporally limited.
+\end{itemize}
+
+\subsubsection{Action Nodes}\label{subsubsec:setup:action_nodes}
+
+There are a multitude of actions required for the various subtask a rotorcraft has to perform during a mission. The most important ones for the landing behavior in this work are the following:
+
+\begin{itemize}
+    \item ChangeAltitudeAction: Changes the drone's altitude to the given value. The ascend / descend velocity diminishes upon reaching proximity to the desired waypoint.
+    \item HoldPoseAction: Self-explanatory: the drone holds the current pose for a given time.
+    \item LandingAction: Similar to the ChangeAltitudeAction, it descends to a waypoint which in this case is simply the ground vertically below the drone's current position. Upon reaching a certain proximity to the landing point, the descent velocity is reduced to a minimum in order to accomplish smooth landing.
+    \item NavigateToWaypointAction: Lateral movement to the given waypoint. Same proximity based slow-down mechanism as ChangeAltitudeAction and LandingAction.
+    \item RotateTowardsWaypointAction: Rotates the drone to face the given waypoint.
+\end{itemize}
 
 
 

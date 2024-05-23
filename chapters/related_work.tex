@@ -70,3 +70,7 @@ It consists of a state machine which handles all fundamental behavior states and
 In addition to the behavior exerted during nominal procedure the autonomy also handles system health events and hardware failure occurrences.
 
 The autonomy embodies the interface between the flight controller, landing site detector, healthguard and more. It also contains an individual mission planner making the usage of an additional ground station obsolete.
+
+\section{Stereo Depth}
+
+In addition to the contributions of the LORNA project I need to mention the initial stereo depth algorithm developed by Heiko Hirschmüller \citep{Stereo}. This is the underlying method used in opencv's steroSGBM method which I endet up utilizing in this work.

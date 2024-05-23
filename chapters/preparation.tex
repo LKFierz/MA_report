@@ -1,4 +1,4 @@
-\chapter{Methodology}
+\chapter{Methodology - Preparation}
 \label{sec:methodology}
 
 As mentioned above the endeavour of this thesis was to put together a front to back landing procedure utilizing an existing vision based landing site detection pipeline and an autonomous framework. In order to do this, all individual software instances needed to be ready in order to combine them and achieve autonomous landing in unknown terrain.
@@ -71,14 +71,21 @@ Where $\Delta z$ is the depth error and $\Delta d$ the disparity error.
 
 The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10cm and a focal length of 256.
 
-With these properties and estimating a subpixel precision disparity error of 0.25 pixels the depth error at varying altitudes looks as follows:
+With these properties and estimating a subpixel precision disparity error of 0.5 pixels the depth error at varying altitudes looks as follows:
 
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.19]{images/methodology/stereo_limit.png}
+    \label{fig:stereo_limit}
+\end{figure}
 
+Let's assume we allow a maximum depth error of 10cm. Considering this constraint we can fly at a maximum altitude of about 3m as indicated in \cref{fig:stereo_limit}.
 
+This limitatin has to be kept in mind. However it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
 
 \subsection{Implementation}
 
-Like Structure from Motion, the stereo depth program is a ros node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, simulation camera images and a ground truth camera pose were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed baseline.
+Like Structure from Motion, the stereo depth instance is a ros node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, camera images and a ground truth camera pose from the simulation were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed baseline.
 
 The stereo depth implementation was done using opencv's StereoSGBM algorithm. As stereo depth generation is a widely known topic I won't go into the details here.
 
@@ -86,8 +93,59 @@ The final output of the node is a generated pointcloud in the world frame togeth
 
 \subsubsection{Qualitative Practical Analysis}
 
-Once implemented the landing site detection instance could be supplied by the stereo depth node. The result can be seen in the following:
+Once implemented the landing site detection instance could be supplied by the stereo depth node. The result thereof can be seen below:
 
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.2, angle=-12]{images/methodology/reference_map2.5m_annotated.png}
+    \caption{Considered terrain patch in Gazebo simulation}
+    \label{stereo_reference}
+\end{figure}
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.25]{images/methodology/stereo_2.5m.png}
+    \caption{Stere camera depth supplied LSD debug image at 2.5m altitude}
+    \label{qual_stereo_test}
+\end{figure}
+
+\clearpage %HERE
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.25]{images/methodology/GT_2.5m.png}
+    \caption{GT depth supplied LSD debug image at 2.5m altitude}
+    \label{stereo_GT}
+\end{figure}
+
+When comparing the result to the ground truth LSD output it can be seen that LSD creates a very accurate DEM from the stereo camera depth input. The landing sites detected are reasonable when looking at the terrain reference. 
+
+\section{Ground Truth Depth}
+
+For evaluation purposes as well as proof of concept aspirations a ground truth is required. The simulation already supplied the ground truth pose of the drone's base link through the ros bridges. When applying the static camera transform to it, this yielded the ground truth camera pose.
+
+\subsection{Gazebo Garden Depth Camera}\label{subsec:gz_depth_camera}
+
+Obviously the same approach could be taken for a point cloud created by a depth camera in the simulation. However implementing such a depth camera with equal camera parameters as the reference stereo camera showed different results.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[scale=0.4]{images/methodology/GT_error_sim.png}
+    \caption{Simulation Reference}
+    \label{fig:GT_error_sim}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.4]{images/methodology/GT_error_GT.png}
+    \caption{GT depth image with wrong calibration}
+    \label{fig:GT_error_GT}
+\end{figure}
+
+\clearpage %HERE
+
+Looking at \cref{fig:GT_error_sim} and \cref{fig:GT_error_GT} the error looks like a simple translation error or is even hard to see at all. Focus for instance on the edge of the canape in the top left. When comparing the extrinsic parameters of the cameras, they were perfectly aligned. Further tests showed however that there was an actual error in the Gazebo Garden source code.\footnote[1]{For more footage on this see \cref{chapter:appendix:gz_depth_camera}} No matter what camera parameters were passed, the depth camera had the same fov. Changing this depth camera implementation finally allowed the usage of a gazebo depth camera as a supplier of ground truth depth information.
 
 \section{Landing Site Properties}\label{sec:LSproperties}
 
@@ -123,65 +181,5 @@ To determine the size of a landing site, the landing site detection algorithm pe
 
 The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
 
-\section{Autonomous Landing Procedure}
 
-With the enhanced structure of the LSD output and having implemented a stereo camera as a low altitude alternative to SFM, the main contribution of this work could be faced.
-
-\subsection{Landing Site Handling}
-
-As shown in \cref{sec:setup:autonomy} the autonomy is structured in a hierarchical and modular way. The current state of the state machine determines the specific task to be executed in that state's execution node. As the landing sites are constantly received alongside the mission tasks performed, they have to be processed in a separate thread. This is handled by a landing site manager (LSM) singleton class which ranks the landing sites according to a loss function and stores them in a heap buffer.
-
-\subsubsection{Landing Site Heuristic}\label{subsubsec:LandingSiteHeuristic}
-
-As mentioned in \cref{sec:LSproperties} the autonomy receives landing sites with the following properties:
-
-\begin{itemize}
-    \item Position
-    \item Roughness
-    \item Uncertainty
-    \item Size
-    \item Obstacle Altitude
-\end{itemize}
-
-From these properties the characteristics that comprise the final heuristic are:
-
-\begin{itemize}
-    \item Current Distance to Drone
-    \item Roughness
-    \item Uncertainty
-    \item Size
-    \item Verification Altitude
-\end{itemize}
-
-\textbf{Current Distance to Drone}
-
-Each iteration the current distance to the drone's position is calculate for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100m. Note that in practice landing sites fell off when farther away than 100m which yields a valid normalization. %TODO
-\clearpage
-
-\textbf{Roughness}
-%TODO
-
-The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
-
-\textbf{Uncertainty}
-
-The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
-
-\textbf{Size}
-
-Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However unlike the two preceeding properties it is not normalized but simply denotes the metric radius of the largest circle fitted around a given landing site. This is achieved in LSD by performing a distance transform on the landing site image.
-
-In order to normalize this value the maximum landing site size is retained and each landing site's size is divided by it in order to achieve the normalized size indication.
-
-\textbf{Verification Altitude}
-
-A site's verificaiton altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. Similar to the uncertainty metric the verification altitude indicates how certain we can be about a detected landing site as spots detected at lower flight altitudes are more likely correct due the reduced depth error. 
-
-\subsubsection{Landing Site Input Processing}
-
-The autonomy handles the detected landing sites using a landing site manager which is constantly executed alongside the autonomys current state execution. This is shown in \cref{fig:autonomy}.
-
-The landing site manager receives the landing sites from the ROS connector within the autonomy. 
-
-\subsubsection{}
 
