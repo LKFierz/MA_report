@@ -12,15 +12,15 @@ This implementation can be split into the following parts:
 
 \section{Landing Site Handling}
 
-As shown in \cref{sec:setup:autonomy} the autonomy is structured in a hierarchical and modular way. The current state of the state machine determines the specific task to be executed in that state's execution node. As the landing sites are constantly received alongside the mission tasks performed, they have to be processed in a separate thread. This is handled by a landing site manager (LSM) singleton class.
+Landing sites are constantly received by the autonomy's ROS connector alongside the mission tasks performed. They have to be processed in a separate thread. This is handled by a landing site manager (LSM) singleton class.
 
 \subsection{Landing Site Manager}
 
-Incoming landing sites are ranked according to a loss function and stores them in a heap buffer.
+The incoming landing sites are ranked according to a loss function(\ref{subsubsec:LandingSiteHeuristic}) and stored in a max-heap buffer in order to easily switch out the worst landing site for a new one at any given time.
 
 \section{Landing Site Heuristic}\label{subsubsec:LandingSiteHeuristic}
 
-As mentioned in \cref{sec:LSproperties} the autonomy receives landing sites with the following properties:
+As mentioned in \cref{sec:LSproperties} the autonomy receives landing sites from LSD with the following properties:
 
 \begin{itemize}
     \item Position
@@ -40,26 +40,31 @@ From these properties the characteristics that comprise the final heuristic are:
     \item Verification Altitude
 \end{itemize}
 
-\subsection{Current Distance to Drone}
+The final heuristic is in fact a square loss function defining the quality of a landing site:
 
-Each iteration the current distance to the drone's position is calculate for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100m. Note that in practice landing sites fell off when farther away than 100m which yields a valid normalization. %TODO
+\begin{equation}
+    L_{LS} = w_{dist}L_{dist} + w_{rough}L_{rough} + w_{var}L_{var} + w_{size}L_{size} + w_{verAlt}L_{verAlt}
+\end{equation}
 
-\subsection{Roughness}
+\subsection{Current Distance to Drone - $L_{dist}$}
+Well likely the single most important characteristic of an LSD-prefiltered\footnote[1]{Each received landing site has already undergone a threshold filtering regarding slope and roughness.} landing site. Each iteration the current distance to the drone's position is calculated for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100m. In practice there were easily enough landing sites found while moving to allow landing sites to fall off when being farther away than 100m.
+
+\subsection{Roughness - $L_{rough}$}
 %TODO
 
 The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
 
-\subsection{Uncertainty}
+\subsection{Uncertainty - $L_{var}$}
 
 The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
 
-\subsection{Size}
+\subsection{Size - $L_{size}$}
 
 Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However unlike the two preceeding properties it is not normalized but simply denotes the metric radius of the largest circle of valid landing area that can be fit around a given landing site. This is achieved in LSD by performing a distance transform on the created landing site image.
 
 In order to normalize this value the maximum landing site size is retained and each landing site's size is divided by it in order to achieve normalized size information.
 
-\subsection{Verification Altitude}
+\subsection{Verification Altitude - $L_{verAlt}$}
 
 A site's verificaiton altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. 
 
@@ -76,17 +81,27 @@ Continuously updating the verification altitude upon redetection allows us to de
 
 \section{Landing Behavior}
 
-The final landing behavior is implemented in the form of a behavior tree which allows adaptive decision making.
-
-The autonomous framework(\ref{sec:setup:autonomy}) 
+%Define the high level landing behavior
 
 \subsection{Action Definition}
+The final landing behavior is implemented in the form of a behavior tree which allows adaptive decision making.
 
-For the finished behavior tree the following additional actions were defined. See \cref{subsubsec:setup:action_nodes} for the actions defined prior to this work.
+The autonomous framework already defined the core control flow nodes as well as some of the action nodes required for the landing behavior. (\ref{subsec:setup:behavior_tree}) The following additional actions were defined in this work. 
 
 \subsubsection{AscendToClearAltitude}
+Once a landing site has been chosen, the failsafe mechanism to go to that landing site is the following:
+
+\begin{enumerate}
+    \item Ascend to a safe altitude
+    \item Traverse laterally to the landing site's xy-position
+    \item Descend to the 
+\end{enumerate}
 \subsubsection{ChangeAltitudeLSAction}
 \subsubsection{GetLandingSiteAction}
 \subsubsection{GetNextPatternCenterWPAction}
 \subsubsection{LandingSiteSearchAction}
 \subsubsection{LandingSiteVerificationAction}
+
+\subsection{Behavior Tree}
+
+

@@ -9,19 +9,21 @@ The autonomous framework\citep{Autonomy} allows us to fly independent missions a
 
 At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because the drone does not retain any hazard information due to the limitations of computational complexity present for mars flights. 
 
+\subsection{Stereo Camera - SFM Comparison}
+
 In the following a qualitative analysis of the comparison of SFM and stereo camera depth is layed out:
 
-\subsection{Lateral Motion}
+\subsubsection{Lateral Motion}
 
 As already mentioned above the need for lateral motion in itself is an undesirable necessity for a rotorcraft in unknown terrain. 
 
 In this setup the structure from motion approach is based on a keyframe buffer which needs to be filled with image-pose pairs at different horizontal positions in order to start acquiring depth information. The current setting in the implementation \citet{SFM} uses 6 keyframes. Therefore for a single point cloud it is necessary to move laterally 6 times in order to start perceiving depth. 
 
-\subsection{Software vs Hardware Depth Perception}
+\subsubsection{Software vs Hardware Depth Perception}
 
 Structure from Motion, being a software node that relies on camera poses supplied by a state estimator, is by design subject to inaccuracies. A depth node based on a stereo camera on the other hand works with a fixed rigid baseline between the camera views. Thus for low altitude flights that bear the danger of collision, a more robust hardware approach is preferred.
 
-\subsection{DEM Conversion}
+\subsubsection{DEM Conversion}
 
 As described in \cref{subsubsec:setup:aggregation} the multi-resolution DEM used for depth aggregation in LSD is based on Optimal Mixture of Gaussian cells and thus converges over time. 
 
@@ -91,10 +93,53 @@ The stereo depth implementation was done using opencv's StereoSGBM algorithm. As
 
 The final output of the node is a generated pointcloud in the world frame together with two poses representing the camera locations of the generated pointcloud.
 
+Taking off vertically with the drone in the simulation, the first landing site without lateral motion was found.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.32]{images/preparation/stereo/drone_with_stereo_cam.png}
+    \caption{Stereo camera on drone indicated by opaque boxes}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.34]{images/preparation/stereo/ascent_sim.png}
+    \caption{Drone during vertical ascent in simualation}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.45]{images/preparation/stereo/stereo_pointcloud.png}
+    \caption{Rviz visualization of created point cloud from stereo camera}
+\end{figure}
+\clearpage %HERE
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.25]{images/preparation/stereo/lsd_ascent.png}
+    \caption{LSD Debug output displaying LORNA's first detected landing site during vertical motion}
+\end{figure}
+
+\subsubsection{Switching}
+
+In order to achieve the final desired perception mechanism of flying laterally with SFM and using a stereo camera depth node at low altitudes, one needs to switch between the two alternatives.
+
+The obvious flag to use in the switching mechanism is the current altitude above ground. This could be achieved by analyzing the generated point cloud at a given iteration to the determine the median altitude which indicates the altitude above ground. This however is avoidable computational overhead.
+
+As mentioned in \cref{sec:state_estimator} the drone has a laser range finder on board. This allows us to get an estimate of the altitude above ground at any given moment without the need for image processing.
+
+Therefore the switching is performed by using a separate ros subscriber which continuously checks the lrf's measurement and activates or deactivates the SFM node and stereo node respectively.
+
+\clearpage %HERE
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.17]{images/preparation/stereo/switching.png}
+    \caption{Laser Ranger Finder Based Switch between Depth Sources}
+\end{figure}
+
 \subsubsection{Qualitative Practical Analysis}
 
 Once implemented the landing site detection instance could be supplied by the stereo depth node. The result thereof can be seen below:
-
 
 \begin{figure}[ht!]
     \centering

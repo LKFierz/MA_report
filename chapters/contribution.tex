@@ -8,6 +8,8 @@ The autonomy was altered in a way to receive the detected landing sites and orde
 The landing site detection output initially only consisted of the location of the landing site. This output was enhanced to consider many more characteristics in order for the autonomy to make an informed decision with regards to what spot to select.
 \section{Stereo Camera Depth Alternative}
 Implemented a stereo camera in the simulated drone model in order to get stereo sensor images. Created a stereo camera depth node as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
+\subsection{Depth Source Switching}
+Implemented an automatic switch between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board.
 \section{Additional}
 Other contributions indirectly connected to the project itself but necessary for the implementation:
 \subsection{Simulation Setup}
