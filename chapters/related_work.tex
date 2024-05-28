@@ -3,6 +3,9 @@
 
 With Ingenuity\citep{Ingenuity} NASA has already sent a drone to Mars. It was the first ever rotorcraft on another planet and instead of the initially planned 5 flights it completed an outstanding 72 flights in its lifecycle. However because it had no landing site detection capabilities every landing spot had to be determined in advance based on HiRISE images or rover footage. Therefore flight missions had to be planned with a large safety margin and considerable overhead. 
 
+
+\section{Long Range Navigation (LORNA)}
+
 The Long Range Navigation (LORNA) project that I have been involved with is part of NASA's Mars Science Helicopter mission which is the planned future rotorcraft mission taking on large distance traversal and scientific exploration. LORNA tries to tackle both the aforementioned reliable safe landing as well as large distance traversal in a three-step approach:
 
 \begin{itemize}
@@ -13,7 +16,7 @@ The Long Range Navigation (LORNA) project that I have been involved with is part
 
 In this thesis I expanded on these building blocks, connecting them in order to create a wholistic landing pipeline.
 
-\section{State Estimation}\label{sec:state_estimator}
+\subsection{State Estimation}\label{sec:state_estimator}
 
 As this thesis was only scarcely linked to the state estimation of the project I will only superficially scratch that introduction. 
 
@@ -27,7 +30,7 @@ Finder...) and using an Extended Kahlamn Filter, it creates a pose estimate out 
 Drift accumulated over time using this local state estimator can be reduced using a Map Based Localization(MBL) algorithm \citep{XMBL}. Hereby images from the drone are matched against a satellite map in order to refine the pose from VIO.
 
 
-\section{Landing Site Acquisition }
+\subsection{Landing Site Acquisition }
 
 A core part of the LORNA Mars Science Helicopter proposal is the landing site acquisition. As the terrain on Mars in high definition is mostly unknown and the landing procedure is the most dangerous part out of any rotorcraft mission it is imperative for a drone to perceive the elevation of the terrain beneath it and segment good landing sites on it.
 
@@ -61,7 +64,7 @@ However because of the initial implementation in \citep{LSD1}, each layer consid
 
 
 
-\section{Autonomous Framework}
+\subsection{Autonomous Framework}
 
 The autonomy \citep{Autonomy} used by LORNA was develeped within the project itself. 
 
@@ -71,6 +74,6 @@ In addition to the behavior exerted during nominal procedure the autonomy also h
 
 The autonomy embodies the interface between the flight controller, landing site detector, healthguard and more. It also contains an individual mission planner making the usage of an additional ground station obsolete.
 
-\section{Stereo Depth}
+\subsection{Stereo Depth}
 
 In addition to the contributions of the LORNA project I need to mention the initial stereo depth algorithm developed by Heiko Hirschmüller \citep{Stereo}. This is the underlying method used in opencv's steroSGBM method which I endet up utilizing in this work.
