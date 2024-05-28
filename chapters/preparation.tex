@@ -1,5 +1,5 @@
 \chapter{Methodology - Preparation}
-\label{sec:methodology}
+\label{sec:methodology_preparation}
 
 As mentioned above the endeavour of this thesis was to put together a front to back landing procedure utilizing an existing vision based landing site detection pipeline and an autonomous framework. In order to do this, all individual software instances needed to be ready in order to combine them and achieve autonomous landing in unknown terrain.
 
@@ -77,7 +77,7 @@ With these properties and estimating a subpixel precision disparity error of 0.5
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.19]{images/methodology/stereo_limit.png}
+    \includegraphics[scale=0.19]{images/preparation/stereo_limit.png}
     \label{fig:stereo_limit}
 \end{figure}
 
@@ -143,14 +143,14 @@ Once implemented the landing site detection instance could be supplied by the st
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.2, angle=-12]{images/methodology/reference_map2.5m_annotated.png}
+    \includegraphics[scale=0.2, angle=-12]{images/preparation/reference_map2.5m_annotated.png}
     \caption{Considered terrain patch in Gazebo simulation}
     \label{stereo_reference}
 \end{figure}
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/methodology/stereo_2.5m.png}
+    \includegraphics[scale=0.25]{images/preparation/stereo_2.5m.png}
     \caption{Stere camera depth supplied LSD debug image at 2.5m altitude}
     \label{qual_stereo_test}
 \end{figure}
@@ -159,7 +159,7 @@ Once implemented the landing site detection instance could be supplied by the st
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/methodology/GT_2.5m.png}
+    \includegraphics[scale=0.25]{images/preparation/GT_2.5m.png}
     \caption{GT depth supplied LSD debug image at 2.5m altitude}
     \label{stereo_GT}
 \end{figure}
@@ -177,13 +177,13 @@ Obviously the same approach could be taken for a point cloud created by a depth 
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[scale=0.4]{images/methodology/GT_error_sim.png}
+    \includegraphics[scale=0.4]{images/preparation/GT_error_sim.png}
     \caption{Simulation Reference}
     \label{fig:GT_error_sim}
 \end{figure}
 \begin{figure}
     \centering
-    \includegraphics[scale=0.4]{images/methodology/GT_error_GT.png}
+    \includegraphics[scale=0.4]{images/preparation/GT_error_GT.png}
     \caption{GT depth image with wrong calibration}
     \label{fig:GT_error_GT}
 \end{figure}
@@ -222,7 +222,7 @@ The uncertainty value is also a product of the landing site detection algorithm.
 
 To determine the size of a landing site, the landing site detection algorithm performs a distance transform on the created landing site map in order to find the closest non-landing site for any found landing site. This returns the radius of the largest valid landing circle around a landing site. Calculating the physical value, the metric radius is returned as the size of a landing site.
 
-\subsection{Obstalce Altitude}
+\subsection{Obstalce Altitude}\label{subsec:obstacle_altitude}
 
 The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
 
