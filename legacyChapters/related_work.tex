@@ -1,0 +1,79 @@
+\chapter{Related Work}
+\label{sec:relwork}
+
+With Ingenuity\citep{Ingenuity} NASA has already sent a drone to Mars. It was the first ever rotorcraft on another planet and instead of the initially planned 5 flights it completed an outstanding 72 flights in its lifecycle. However because it had no landing site detection capabilities every landing spot had to be determined in advance based on HiRISE images or rover footage. Therefore flight missions had to be planned with a large safety margin and considerable overhead. 
+
+
+\section{Long Range Navigation (LORNA)}
+
+The Long Range Navigation (LORNA) project that I have been involved with is part of NASA's Mars Science Helicopter mission which is the planned future rotorcraft mission taking on large distance traversal and scientific exploration. LORNA tries to tackle both the aforementioned reliable safe landing as well as large distance traversal in a three-step approach:
+
+\begin{itemize}
+    \item State Estimation \citep{XVIO, XMBL}
+    \item Landing Site Acquisition \citep{LSDnSFM}
+    \item Autonomous Framework \citep{Autonomy}
+\end{itemize}
+
+In this thesis I expanded on these building blocks, connecting them in order to create a wholistic landing pipeline.
+
+\subsection{State Estimation}\label{sec:state_estimator}
+
+As this thesis was only scarcely linked to the state estimation of the project I will only superficially scratch that introduction. 
+
+Similar to the Ingenuity mission LORNA plans on using a Visual-Inertial Odometry state estimator called xVIO \citep{XVIO}. In contrast to the state estimator on Ingenuity, xVIO's modular approach allows it to use additional sensors like a laser range finder.
+
+The xVIO state estimator receives the sensor outputs (Image, IMU, Laser Range
+Finder...) and using an Extended Kahlamn Filter, it creates a pose estimate out of it which is passed to the flight controller and the visual landing site acquisition nodes (SFM, LSD).
+
+\subsection{xMBL}
+
+Drift accumulated over time using this local state estimator can be reduced using a Map Based Localization(MBL) algorithm \citep{XMBL}. Hereby images from the drone are matched against a satellite map in order to refine the pose from VIO.
+
+
+\subsection{Landing Site Acquisition }
+
+A core part of the LORNA Mars Science Helicopter proposal is the landing site acquisition. As the terrain on Mars in high definition is mostly unknown and the landing procedure is the most dangerous part out of any rotorcraft mission it is imperative for a drone to perceive the elevation of the terrain beneath it and segment good landing sites on it.
+
+The LORNA project tackles this in a two step approach:
+
+\begin{itemize}
+    \item Depth Generation from Structure from Motion (SFM) \citep{SFM}
+    \item Landing Site Detection (LSD) \citep{LSD1, LSD2}
+\end{itemize}
+
+\subsection{Structure from Motion (SFM)}\label{subsec:related_work:SFM}
+
+The Structure from Motion algorithm \citep{SFM} uses a keyframe based approach to create a point cloud from incoming monocular camera images. It receives images and their image poses respectively from the vision based state estimator. (\ref{sec:state_estimator})
+
+As it is supplied with monocular images from a nadir pointed camera it creates point clouds using lateral motion in between images. This allows for an adaptive baseline enabling depth perception at high altitudes. However at low altitudes lateral motion in unknown terrain poses a significant risk for a rotorcraft. More on this in \cref{sec:StereoDepth}.
+
+\subsection{Landing Site Detection (LSD)}\label{subsec:related_work:LSD}
+
+The Landing Site Detection algorithm is comprised of two steps: 
+
+\begin{itemize}
+    \item Depth Aggregation
+    \item Landing Site Segmentation
+\end{itemize}
+
+Depth measurements are accumulated in a multi-resolution depth map. Initially as described in \citet{LSD1} the different layers represented an absolute base layer and relative residual layers in the higher resolution representations.
+
+In \citet{LSD2} this was altered to only consider absolute measurements at each resolution layer. 
+
+However because of the initial implementation in \citep{LSD1}, each layer considers the same map size. 
+
+
+
+\subsection{Autonomous Framework}
+
+The autonomy \citep{Autonomy} used by LORNA was develeped within the project itself. 
+
+It consists of a state machine which handles all fundamental behavior states and executes the respective node within a state. These nodes can be as simple as a unique standalone action. More complicated nodes handle sophisticated procedures using adaptive behavior trees. 
+
+In addition to the behavior exerted during nominal procedure the autonomy also handles system health events and hardware failure occurrences.
+
+The autonomy embodies the interface between the flight controller, landing site detector, healthguard and more. It also contains an individual mission planner making the usage of an additional ground station obsolete.
+
+\subsection{Stereo Depth}
+
+In addition to the contributions of the LORNA project I need to mention the initial stereo depth algorithm developed by Heiko Hirschmüller \citep{Stereo}. This is the underlying method used in opencv's steroSGBM method which I endet up utilizing in this work.
