@@ -3,6 +3,8 @@
 
 Autonomous safe landing is perhaps the most important part of a rotorcraft's mission. It comes therefore as no surprise, that tremendous amounts of work have been accomplished in the pursuit of achieving this crucial feat. 
 
+\section{Artificial Landing Markers}
+
 Utilizing vision based approaches is also not a new idea. \citep{Saripalli2002VisionBasedLanding,Falanga2017QuadrotorLanding} and \citep{Mu2023VisionBasedLanding} use artificial landing markers as indications of valid landing sites. 
 
 \citep{Bosch2006AutonomousDetection,Brockers2011AutonomousLanding,Desaraju2015VisionBased} and \citep{Brockers2014TowardsAutonomous} pursue implementations based on homography assumptions. This is not possible in our setup as we cannot assume homographic conditions on Mars' rough terrain.
@@ -17,5 +19,4 @@ Modern approaches like \citep{Fankhauser2014RobotCentric, Forster2015Continuous}
 
 Other novel approaches use learning based methods as did \citep{Neves2024Multimodal, Abdollahzadeh2022SafeLandingZones} and \citep{TovanchePicon2024RealTimeSafeValidation}. Though certainly promising regarding accuracy and in the long run definitely a pathway to consider, learning based methods come with significant costs in the context of the task at hand. First of all considering the limitations present in Mars missions, the probable additional computational overhead from learning based methods can not be neglected. Furthermore, neural network based solutions give up simplicity and interpretablity for the benefit of precision. This is not to be underestimated in a tricky environment such as Mars terrain. Additionally, learning based methods require substantial training data which, in the context of autonomous UAV landing, is not available in large quantities. Lastly complex and specific missions flown on Mars pose their unique challenges. Niche information about these problems can be fused into conventional methods in the form of prior assumptions and constraints.
 
-Test \citep{Johnson2005VisionGuided} Test 2 \citep{LSD1}
 % 
