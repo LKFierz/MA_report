@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex report"] 1717423369.07701 "report.aux" "report.bbl" "report" 1717423374.5369 0
+["bibtex report"] 1717432968.51204 "report.aux" "report.bbl" "report" 1717432974.81552 0
   "./bibliography/IEEEtranN.bst" 1652713271 63140 0fbee010820069093ff128821573b034 ""
   "./bibliography/references.bib" 1717143710.24172 10646 02eeeaa80b75e3b25a001e843b4b4c77 ""
-  "report.aux" 1717423374.06407 20289 8a4290f5ffcb4691c9b607542213310c "pdflatex"
+  "report.aux" 1717432974.36351 24721 feaabaf0b0eae607e68bd9a4c4956dc8 "pdflatex"
   (generated)
   "report.bbl"
   "report.blg"
   (rewritten before read)
-["pdflatex"] 1717423369.24188 "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" "report.pdf" "report" 1717423374.53712 0
-  "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" 1717410654.01542 3932 cb4427c6aed66064fc8f3d19525b5d31 ""
+["pdflatex"] 1717432968.66712 "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" "report.pdf" "report" 1717432974.81575 0
+  "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" 1717432955.48925 3924 563eccbb2ab3096ee4b9100c6551571a ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm0500.tfm" 1136768653 1536 b3387106d9afecbfe14bde2de6eadf47 ""
@@ -221,10 +221,16 @@
   "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
   "chapters/acronyms.tex" 1715951669.44901 657 74ebdb7886ff7b1b2ff82a32af6cd878 ""
   "chapters/autonomous_landing_procedure.tex" 1717422942.87883 16568 c034bf063de4768a94d49391daaecf41 ""
+  "chapters/evaluation.tex" 1717431127.23071 2235 4df635c2721eb2d02902a07e1397105e ""
+  "chapters/introduction.tex" 1717409210.24431 9228 5395bc9bf63b242c18bf42c4cbb370a5 ""
   "chapters/methodology.tex" 1717422942.84879 3045 055eed90b45953affa8f09a7a7bd32c8 ""
   "chapters/related_work.tex" 1717410706.47058 4164 ac568ff06c78eeacacd080c081d5a67d ""
   "chapters/stereo_camera_depth.tex" 1717423363.65135 11201 4c0e27ef5369e22afcaff0a6111f2f31 ""
   "chapters/system_overview.tex" 1717318992.33797 11247 e27c95f0038ec9cd12ee5829fe77b6a8 ""
+  "images/evaluation/arroyo.png" 315525600 350141 b7a6196a1a3cceac4bf9916be1457564 ""
+  "images/evaluation/arroyo_map.png" 315525600 2467780 f395625aa291c345581674bd51fcb75c ""
+  "images/evaluation/arroyo_with_start.png" 1717430922.77708 2767507 8424ea1e2053cb3b06ceb708ce8031f5 ""
+  "images/evaluation/rough_test_map.png" 1717429625.10789 508884 60f460df72f3e7952857c5bac6f3b366 ""
   "images/examples/eth_logo.pdf" 1715940524.39389 23696 7e7913b04ccd98dd60e95740d44ce137 ""
   "images/examples/rsl_logo.pdf" 1715940524.39531 419511 d75ec7e5232fd6916c2941ab621f8ae5 ""
   "images/preparation/GT_2.5m.png" 1716881165.28576 73303 aa84510ed05297a4eb76c8179393abab ""
@@ -249,11 +255,11 @@
   "images/setup/setup_flowchart.png" 1715782569.88658 629749 5a3713ec32d88315caa6c0883cc68c29 ""
   "packages/ethrsl.sty" 1711749089 4555 ca65a2a84d71ea0eb91b62f70e7ce5b0 ""
   "preambles/rsl_preamble.tex" 1717404322.81798 1659 19ec4dad391edf4651db322630055dbe ""
-  "report.aux" 1717423374.06407 20289 8a4290f5ffcb4691c9b607542213310c "pdflatex"
-  "report.bbl" 1717423369.23598 8266 d0551274ead80c30009539a9d562e18a "bibtex report"
-  "report.out" 1717423374.06648 5635 c4e4dbc4a98ed5f02fc09c873c4cf490 "pdflatex"
-  "report.tex" 1717410654.01542 3932 cb4427c6aed66064fc8f3d19525b5d31 ""
-  "report.toc" 1717423374.06698 5072 aa839d64e4ff913108b2ff90a60f2edf "pdflatex"
+  "report.aux" 1717432974.36351 24721 feaabaf0b0eae607e68bd9a4c4956dc8 "pdflatex"
+  "report.bbl" 1717432968.661 8266 d0551274ead80c30009539a9d562e18a "bibtex report"
+  "report.out" 1717432974.36612 9966 0802c910866a6a3242a43da0f101a2cf "pdflatex"
+  "report.tex" 1717432955.48925 3924 563eccbb2ab3096ee4b9100c6551571a ""
+  "report.toc" 1717432974.3665 7230 f8c16d76f7698fe3a9b41033c178b91d "pdflatex"
   (generated)
   "report.aux"
   "report.log"

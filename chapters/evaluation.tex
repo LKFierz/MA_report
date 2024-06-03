@@ -3,18 +3,42 @@
 
 \section{A Performance Evaluation of the SFM-LSD Pipeline at 100m Altitude}
 \section{Experimental Setup}
-\subsection{Test Maps}
 In the following all the performed experiments were flown on the following two maps:
 \begin{itemize}
     \item Arroyo Map - Prerecorded Gazebo map from the Arroyo Seco area outside the East entrance of the Jet Propulsion Laboratory.
-% TODO Image of Arroyo
+    \begin{figure}
+        \centering
+        \includegraphics[scale=0.5]{images/evaluation/arroyo.png}
+        \caption{Map of the Arroyo Seco area outside of the Jet Propulsion Laboratory}
+    \end{figure}
+    \begin{figure}
+        \centering
+        \includegraphics[scale=0.23]{images/evaluation/arroyo_map.png}
+        \caption{Close Up of the Arroyo Map}
+    \end{figure}
     \item Rough Test Map - A synthetically created map using Blender, designed not to have any safe landing site throughout its entire area. 
-% TODO Image of rough test map
+    \begin{figure}
+        \centering
+        \includegraphics[scale=0.285]{images/evaluation/rough_test_map.png}
+        \caption{Synthetically created map with no landing sites apart from inserted landing platforms.}
+    \end{figure}
 \end{itemize}
 \subsection{Drone Spawn}
 The drone was either spawned repetetively from a default location on the ground (The start location from when the actual fields tests were performed) or from a random location. For a simplicity way of  avoiding terrain collisions, the drone was spawned on a randomly positioned disk at 40m altitude. The start disk's size was only 0.5m in diameter which prevented it from being considered too good of a landing site by LSD. This is important because the platform implicitly gains quality due to the fact, that it is located higher up than the terrain, leading to a lower distance to the drone when flying at mission altitude.
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.42]{images/evaluation/arroyo_with_start.png}
+    \caption{Arroyo Map with Fixed Start Position}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.42]{images/evaluation/arroyo_with_start.png}
+    \caption{Arroyo map with randomly positioned spawn platform}
+\end{figure}
+\section{Test Flights}
+\subsection{Arroyo - 100m Randomized Waypoints}
 
 
-\section{Testing}
+
 
 
