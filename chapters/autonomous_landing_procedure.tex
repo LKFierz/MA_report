@@ -48,8 +48,6 @@ To determine the size of a landing site, the landing site detection algorithm pe
 
 The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
 
-
-
 \subsection{Landing Site Heuristic}
 
 The autonomy processes the in \cref{sec:LSproperties} listed values in order to arrive at the following final landing site properties:
@@ -115,8 +113,6 @@ The necessary checks and initializations are performed. This includes the create
 Then the drone takes off vertically until it reaches the first waypoint's target altitude.
 
 During this phase the stereo camera feeds depth images into LSD until the laser range finder switches to SFM which results in a stop of depth supply as SFM does not detect depth during vertical motion.
-
-
 
 \subsection{Prerequisite - Landing Site Handling}
 
