@@ -1,4 +1,16 @@
 \chapter{Methodology}
 \label{sec:methodology}
 
-The approach pursued in this thesis can be divided into two parts.
+The autonomous framework\citep{Autonomy} allows us to fly independent missions at cruise altitude of 100m+. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
+
+At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because the drone does not retain any hazard information due to the limitations of computational complexity present for mars flights. Therefore it could be said that the drone flies blindly with regards to obstacles. In thesis I present a stereo camera implementation to remedy these shortcomings.
+
+\section{Stereo Camera}
+
+The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model and settings the parameters to equal the hardware results in the desired outcome.
+
+Processing this information is different than for the existing SFM node. A new depth generation node was put in place.
+
+\section{Autonomous Landing Procedure}
+
+Having implemented a stereo camera as a low altitude alternative to SFM and after ensuring a correct ground truth comparison, the main contribution of this work could be tackled: Bringing the visual landing site pipeline together with the autonomous framework in order to achieve reliable autonomous landing in unknown terrain.
