@@ -3,13 +3,13 @@
 %\chapter{Einleitung}
 %\label{sec:einleitung}
 
-With the Ingenuity rotorcraft's lifecycle coming to an end the question about future mars rotorcrafts and their capabilities draws ever closer.
+With the Ingenuity rotorcraft's lifecycle coming to an end, the question about future mars rotorcrafts and their capabilities draws ever closer.
 
 For the future NASA plans two different rotorcraft Mars missions. The first is called Sample Retrieval Helicopter (SRH). It is envisioned to be an alternative way of transporting Mars samples to the retrieval station should the Perseverance rover fail to do so.
 
 Secondly, for future large distance missions, NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to cover farther distances at high altitudes with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. These two feats allow a helicopter to perform much advanced science missions compared to Ingenuity. 
 
-The LOng Range NAvigation (LORNA) project that I have been involved with is working on a concept to tackle the aforementioned points while dealing with the constraints that rotorcraft missions on Mars provide us with. These are namely a limitation on the size and weight of the drone, a constraint on compuational power due to the deployment on limited embedded processors and lastly a large delay in communication which makes adaptive remote control from Earth impossible.
+The LOng Range NAvigation (LORNA) project that I have been involved with is working on a concept to tackle the second project's challenges while dealing with the constraints that rotorcraft missions on Mars provide us with. These are namely a limitation on the size and weight of the drone, a constraint on compuational power due to the deployment on limited embedded processors and lastly a large delay in communication which makes adaptive remote control from Earth impossible.
 
 % On a high level the LORNA project consists of three parts. 
 
@@ -32,28 +32,34 @@ The endeavour in this thesis was to create a front to back landing mechanism tha
 The conclusive high level objective of the LORNA project is to autonomously fly high altitude long distance science missions using a map based localization enhanced state estimator. Whilst flying, point clouds are generated and processed. On that data landing sites are acquired and simultaneously ordered according to the respective quality. Initiating the autonomous landing sequence, landing sites can then be chosen and verified at low altitudes using a stereo camera. In case of successful verification the rotorcraft can land at the selected location. 
 
 \section{My Contribution}
-In short my contribution in this thesis can be summarized as follows:
+In this work I managed to implement an autonomous landing procedure which, given random mission waypoints, uses predetected landing sites to determine a safe landing zone to use for landing. This was achieved through the following contributions:
 
-\subsection{Interface Autonomy-LSD}
-The autonomy was altered in a way to receive the detected landing sites and order them according to an adequate heuristic to determine the best landing site at any given time.
-\subsection{Landing Site Detection Output}
-The landing site detection output initially only consisted of the location of the landing site. This output was enhanced to consider many more characteristics in order for the autonomy to make an informed decision with regards to what spot to select.
 \subsection{Stereo Camera Depth Alternative}
-Implemented a stereo camera in the simulated drone model in order to get stereo sensor images. Created a stereo camera depth node as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
-\subsubsection{Depth Source Switching}
-Implemented an automatic switch between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board.
-\subsection{Additional}
-Other contributions indirectly connected to the project itself but necessary for the implementation:
-\subsubsection{Simulation Setup}
+A stereo camera was implemented in the simulated drone model in order to get stereo sensor images. Additionally, a stereo camera depth node was put in place as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
+
+An automatic switch was inserted between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board. This allows for minimal computational overhead as only one depth creation node runs at a time.
+
+\subsection{Flight Analysis at 100m Altitude}
+The visual landing site detection pipeline has not been tested at 100m altitudes prior to this work. As LORNA plans to fly at this cruise altitude, the quality of the structure from motion point clouds as well as the LSD performance is mission critical and was therefore evaluated. %TODO how much do I really analyze it?
+\subsection{Autonomy LSD Interface and Landing Site Handling}
+The landing site detection output initially only consisted of the location of a landing site. This output was enhanced to consider many more characteristics in order for the autonomy to make an informed decision with regards to what spot to select.
+
+The autonomy was enhanced to correctly receive the incoming landing sites and process them in an efficient way that
+\subsection{Behavior Tree for Adaptive Decisions}
+
+Using the existing behavior tree framework from the autonomy, an adaptive landing behavior was implemented. For this, the alteration of numerous existing actions as well as the addition of new action modules interacting with the landing sites was necessary.
+\subsection{Simulation Setup}
 As just recently the switch was made to Gazebo Garden the entire visual pipeline (SFM + LSD) had never run with this simulation environment before. Therefore I implemented the changes necessary to run the landing site detection procedure on the Gazebo sensor input. Additionally whilst implementing the stereo camera and attempting to put in place a simulated depth camera for ground truth it became apparent that the Gazebo depth camera implementation is incorrect neglecting the set intrinsic parameters. Altering Gazebo's source code the implementation could be fixed.
-\subsubsection{Deployment of LSD pipeline onto an Embedded System}\label{subsubsec:voxl2}
-The entire software stack of this project has to run on an embedded system on the future rotorcraft. Currently the used processor is modalAI's voxl2. Both the structure from motion as well as the landing site detection software did not run out of the box having an incompatible dependency handling with the voxl's AARCH architecture. Resolving these issues I was able to run the landing site detection pipeline with the structure from motion depth supply on the voxl2 using a collected rosbag of images and IMU poses.
+\subsection{Deployment of LSD Pipeline onto an Embedded Processor}
+Currently the used processor is modalAI's voxl2. Both the structure from motion as well as the landing site detection software did not run out of the box having an incompatible dependency handling with the voxl's AARCH architecture. Resolving these issues I was able to run the landing site detection pipeline with the structure from motion depth supply on the voxl2 using a collected rosbag of images and IMU poses.
 
 \section{Organisation of this Thesis}
 \subsection{Related Work}
 As is custom, I will introduce the reader to what has been done in this area. Main focus will be placed on vision-based landing site detection procedures and previous work on autonomous landing.
 \subsection{System Overview}
 The entire project overview will be introduced. Emphasis lies on the methods that I have heavily interacted with in this thesis. These are mainly the structure from motion depth generation, the landing site detection mechanism and the autonomous framework.
+\subsection{Methodology}
+Here I conceptually lay out the high level structure of the implemented work in this thesis. The two key contributions are introduced and their subtasks listed.
 \subsection{Stereo Camera Depth Alternative}
 This chapter introduces the stereo camera depth part of the methodology. I will go into the reasoning why a stereo camera is necessary as a low altitude depth alternative. Additionally, I analyse the stereo option theoretically and describe the process of implementing it in the existing project structure. Lastly it is qualitatively compared to a depth camera based ground truth.
 \subsection{Autonomous Landing Procedure}
@@ -61,5 +67,6 @@ Here I will lay out the core contribution of this project which combines the exi
 \subsection{Evaluation}
 Here I introduce the test setup according to which I performed repeated randomized simulation flights. I introduce the outcome defining metrics and the results of the test flights. Lastly these results are analysed conceptually and with specific examples. %TODO Is this still the case? Did I go for specific examples?
 \subsection{Conclusion}
-I summarize the work in this thesis and the outcome of my 
+I summarize the novel contributions of this work and conclusively assess the characteristics and quality of the final landing pipeline. Shortcomings of the approach are pointed out and remedies are discussed.
 \subsection{Outlook}
+Further enhancements of the current systems are layed out and alternatives for future iterations are discussed. Also emphasis is placed on current insufficiencies and the necessity of resolving them.

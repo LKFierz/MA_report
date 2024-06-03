@@ -175,7 +175,7 @@ When comparing the result to the ground truth LSD output it can be seen that LSD
 
 \section{Ground Truth Depth}
 
-For evaluation purposes as well as proof of concept aspirations a ground truth is required. The simulation already supplied the ground truth pose of the drone's base link through the ros bridges. When applying the static camera transform to it, this yielded the ground truth camera pose.
+Throughout the entirety of this project, the simulation's ground truth pose has been used which is the pose of the drone's base link. When applying the static camera transform to it, this yielded the ground truth camera pose. For stereo and SFM evaluation purposes however, also ground truth point clouds are required. 
 
 \subsection{Gazebo Garden Depth Camera}\label{subsec:gz_depth_camera}
 
@@ -199,39 +199,6 @@ Obviously the same approach could be taken for a point cloud created by a depth 
 
 Looking at \cref{fig:GT_error_sim} and \cref{fig:GT_error_GT} the error looks like a simple translation error or is even hard to see at all. Focus for instance on the edge of the canape in the top left. When comparing the extrinsic parameters of the cameras, they were perfectly aligned. Further tests showed however that there was an actual error in the Gazebo Garden source code.\footnote[1]{For more footage on this see \cref{chapter:appendix:gz_depth_camera}} No matter what camera parameters were passed, the depth camera had the same fov. Changing this depth camera implementation finally allowed the usage of a gazebo depth camera as a supplier of ground truth depth information.
 
-\section{Landing Site Properties}\label{sec:LSproperties}
-
-With the low altitude depth alternative in place, the connection of the autonomy with the landing site detector could be tackled. 
-
-Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
-
-Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
-
-I decided on the following properties to be output alongside the site's location:
-
-\begin{itemize}
-    \item Uncertainty
-    \item Roughness
-    \item Size
-    \item Obstacle Altitude
-\end{itemize}
-The final landing site detection output is a custom landing site ROS message containing the above mentioned characteristics of the detected spot.
-
-\subsection{Roughness}
-
-The roughness value the exact value already used for the hazard segmentation step in the landing site detection. 
-
-\subsection{Uncertainty}
-
-The uncertainty value is also a product of the landing site detection algorithm. It denotes the averaged uncertainty across the area around a given landing site. The uncertainty of a single map cell denotes the stereo depth error estimates merged over time.
-
-\subsection{Size}
-
-To determine the size of a landing site, the landing site detection algorithm performs a distance transform on the created landing site map in order to find the closest non-landing site for any found landing site. This returns the radius of the largest valid landing circle around a landing site. Calculating the physical value, the metric radius is returned as the size of a landing site.
-
-\subsection{Obstalce Altitude}\label{subsec:obstacle_altitude}
-
-The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
 
 
 

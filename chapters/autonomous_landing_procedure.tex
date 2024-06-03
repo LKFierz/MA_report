@@ -12,19 +12,47 @@ This implementation can be split into the following parts:
 
 
 
-\section{Landing Site Heuristic}\label{subsubsec:LandingSiteHeuristic}
+\section{Landing Site Handling}\label{subsubsec:LandingSiteHeuristic}
 
-As mentioned in \cref{sec:LSproperties} the autonomy receives landing sites from LSD with the following properties:
+\subsection{LSD Properties}\label{sec:LSproperties}
+
+With the low altitude depth alternative in place, the connection of the autonomy with the landing site detector could be tackled. 
+
+Before this work the output of the landing site dection algorithm was merely the location of a found landing site. However as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
+
+Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
+
+I decided on the following properties to be output alongside the site's location:
 
 \begin{itemize}
-    \item Position
-    \item Roughness
     \item Uncertainty
+    \item Roughness
     \item Size
     \item Obstacle Altitude
 \end{itemize}
+The final landing site detection output is a custom landing site ROS message containing the above mentioned characteristics of the detected spot.
 
-From these properties the characteristics that comprise the final heuristic are:
+\subsubsection{Roughness}
+
+The roughness value the exact value already used for the hazard segmentation step in the landing site detection. 
+
+\subsubsection{Uncertainty}
+
+The uncertainty value is also a product of the landing site detection algorithm. It denotes the averaged uncertainty across the area around a given landing site. The uncertainty of a single map cell denotes the stereo depth error estimates merged over time.
+
+\subsubsection{Size}
+
+To determine the size of a landing site, the landing site detection algorithm performs a distance transform on the created landing site map in order to find the closest non-landing site for any found landing site. This returns the radius of the largest valid landing circle around a landing site. Calculating the physical value, the metric radius is returned as the size of a landing site.
+
+\subsubsection{Obstalce Altitude}\label{subsec:obstacle_altitude}
+
+The obstacle altitude was newly introduced in this work. It defines the currently highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
+
+
+
+\subsection{Landing Site Heuristic}
+
+The autonomy processes the in \cref{sec:LSproperties} listed values in order to arrive at the following final landing site properties:
 
 \begin{itemize}
     \item Current Distance to Drone
@@ -41,19 +69,19 @@ The final heuristic defining the quality of a landing site is in fact a square l
     \label{eq:loss_fct}
 \end{equation}
 
-\subsection{Current Distance to Drone - $L_{dist}$}
+\subsubsection{Current Distance to Drone - $L_{dist}$}
 Well likely the single most important characteristic of an LSD-prefiltered\footnote[1]{Each received landing site has already undergone a threshold filtering regarding slope and roughness.} landing site. Each iteration the current distance to the drone's position is calculated for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100m. In practice there were easily enough landing sites found while moving to allow landing sites to fall off when being farther away than 100m.
 
-\subsection{Roughness - $L_{rough}$}
+\subsubsection{Roughness - $L_{rough}$}
 %TODO
 
 The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
 
-\subsection{Uncertainty - $L_{var}$}
+\subsubsection{Uncertainty - $L_{var}$}
 
 The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
 
-\subsection{Size - $L_{size}$}
+\subsubsection{Size - $L_{size}$}
 
 Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However unlike the two preceeding properties it is not normalized but simply denotes the metric radius of the largest circle of valid landing area that can be fit around a given landing site. This is achieved in LSD by performing a distance transform on the created landing site image.
 
@@ -61,7 +89,7 @@ In order to normalize this value the maximum landing site size is retained and e
 
 Also as can be seen in \cref{eq:loss_fct}, the size contribution enters the loss function with a negative sign. This is due to the fact that compared to all other characteristics, the size defines a property that we would like to maximize.
 
-\subsection{Verification Altitude - $L_{verAlt}$}
+\subsubsection{Verification Altitude - $L_{verAlt}$}
 
 A site's verificaiton altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. 
 
