@@ -3,7 +3,10 @@
 
 \section{A Performance Evaluation of the SFM-LSD Pipeline at 100m Altitude}
 \section{Experimental Setup}
-In the following all the performed experiments were flown on the following two maps:
+
+The pipeline was tested by repeatedly flying a mission with randomized initial conditions.
+
+The performed experiments were flown on the following two maps:
 \begin{itemize}
     \item Arroyo Map - Prerecorded Gazebo map from the Arroyo Seco area outside the East entrance of the Jet Propulsion Laboratory.
     \begin{figure}
@@ -35,8 +38,20 @@ The drone was either spawned repetetively from a default location on the ground 
     \includegraphics[scale=0.42]{images/evaluation/arroyo_with_start.png}
     \caption{Arroyo map with randomly positioned spawn platform}
 \end{figure}
+
+\subsection{Success Conditions}
+To determine whether a flight was successful or not, two main metrics were considered. First of all whether the landing action in the autonomy was initiated (this happens only after the landing site selection and verification were both successful) and secondly to infere the safety of the rotorcraft, a rosbag was collected and analyzed to check whether either the roll or pitch value exceeded the crash threshold.
+
+\textbf{Note: } In practice a threshold of 1.2 radians or shortly below 70\degree proved to be an accurate decision boundary.
+
+\subsection{Offboard Mode connection Issues}
+As will be presented in the following, connection failures between the PX4 flight controller and the autonomy ocurred, leading to the deactivation of the offboard mode and therefore the loss of control of the autonomy over the rotorcraft. These issues arose most likely because the mavros connection inbetween failed to send a necessary heartbeat repeatedly and thus the connection was intercepted.
+
+Self evidently, this did not result in a successful landing and was not counted as such. However, as these connection issues did not occur due to insufficiencies in the pipeline presented in this work, they were not considered failures of the pipeline either.
+\clearpage
 \section{Test Flights}
 \subsection{Arroyo - 100m Randomized Waypoints}
+
 
 
 
