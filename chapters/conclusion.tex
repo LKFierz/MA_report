@@ -1,0 +1,12 @@
+\chapter{conclusion}
+\label{sec:conclusion}
+
+In this work, various contributions to LORNA's Mars Science Helicopter proposal were introduced.
+
+The existing pipeline was analyzed both at cruise altitudes of 100m as well as at low altitudes. The structure from motion approach proofs the capability to provide accurate depth information in both of these scenarios. However as shown in the evaluation, the current implementation lacks robustness which often leads to a crash of the depth supply and therefore to a stop of landing site detection. 
+
+To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to generated depth stationary. The implementation showed very convincing results when compared to a depth camera ground truth. Both the depth quality as well as the overall robustness of this alternative prooved to be highly satisfactory.
+
+Lastly and most importantly an autonomous landing procedure using the visual landing site deteciton pipeline was introduced. The presented implementation allowed for safe landing even in extremely hazardous terrain. The adaptive nature of the behavior tree structure enables the capable handling of critical situations, thus enabling the drone to land repeatedly and safely in unknown terrain.
+
+Overall, the work shown in this thesis builds upon the existing LORNA project and combined several modules to achieve an autonomous landing pipeline suited for the challenge of Mars exploration. 
