@@ -1,7 +1,7 @@
 \chapter{preparation - Autonomous Landing Procedure}\label{chapter:core_implementation}
 
 
-With the enhanced structure of the LSD output, having implemented a stereo camera as a low altitude alternative to SFM and after ensuring a correct ground truth comparison, the main contribution of this work could be faced: Bringing the visual landing site pipeline together with the autonomous framework in order to achieve reliable autonomous landing in unknown terrain.
+With the enhanced structure of the LSD output, having implemented a stereo camera as a low altitude alternative to SFM and after ensuring a correct ground truth comparison, the main contribution of this work could be faced: Bringing the visual landing site pipeline together with the autonomy framework in order to achieve reliable autonomous landing in unknown terrain.
 
 This implementation can be split into the following parts:
 \begin{itemize}
@@ -127,7 +127,7 @@ The verification is performed using the stereo camera(\ref{sec:StereoDepth}).
 \subsection{Action Definition}
 The final landing behavior is implemented in the form of a behavior tree which allows adaptive decision making.
 
-The autonomous framework already defined the core control flow nodes as well as some of the action nodes required for the landing behavior. (\ref{subsec:setup:behavior_tree}) Hereafter displayed is a list of additional actions needed to be defined in this work. It should be noted, that they define individual actions and should not be a description of the entire behavior. For this consider \cref{subsec:behavior_tree}
+The autonomy framework already defined the core control flow nodes as well as some of the action nodes required for the landing behavior. (\ref{subsec:setup:behavior_tree}) Hereafter displayed is a list of additional actions needed to be defined in this work. It should be noted, that they define individual actions and should not be a description of the entire behavior. For this consider \cref{subsec:behavior_tree}
 
 \subsubsection{CheckLandingSite}
 
