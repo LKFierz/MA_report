@@ -3,39 +3,33 @@
 
 With the Ingenuity rotorcraft's lifecycle coming to an end, the question about future mars rotorcrafts and their capabilities draws ever closer.
 
-For the future NASA plans two different rotorcraft Mars missions. The first is called Sample Retrieval Helicopter (SRH). It is envisioned to be an alternative way of transporting Mars samples to the retrieval station should the Perseverance rover fail to do so.
+For the future NASA develops two different rotorcraft Mars concepts. The first is a rotorcraft for low altitudes equipped with a mechanical gripper. It is envisioned to be an alternative way of transporting Mars samples to the retrieval station should the Perseverance rover fail to do so.
 
 Secondly, for future large distance missions, NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to cover farther distances at high altitudes with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. These two feats allow a helicopter to perform much advanced science missions compared to Ingenuity. 
 
 The LOng Range NAvigation (LORNA) project that I have been involved with is working on a concept to tackle the second project's challenges while dealing with the constraints that rotorcraft missions on Mars provide us with. These are namely a limitation on the size and weight of the drone, a constraint on compuational power due to the deployment on limited embedded processors and lastly a large delay in communication which makes adaptive remote control from Earth impossible.
 
-% On a high level the LORNA project consists of three parts. 
-
-% \begin{enumerate}
-%     \item xVIO: State Estimator - Merges camera images, IMU measurements and laser range finder information using an extended Kalman filter.
-%     \item Landing Site Detection Pipeline - Uses structure from motion to aggregate point clouds and detect landing sites on the gathered data.
-%     \item Autonomous Framework - Handles all high level flight behaviors and represents the interface between the flight controller, mission plan, landing site detector, system's healthguard and more.
-% \end{enumerate}
-
-% In this thesis I put emphasis on the ladder two topics working with ground truth poses from the simulation environment.
-
-% Flying a rotorcraft on Mars is of course no new endeavor to NASA as the 71 successful flights performed by Ingenuity demonstrate. In contrast to Ingenuity however this work thrives towards the fully integrated usage of a landing site detection pipeline in an autonomous framework. This allows for a safe, reliable and most importantly autonomous landing procedure lifting the heavy safety constraints on the mission flown and reducing pre flight overhead considerably.
-
-
-
 \section{Objective}
 
-The endeavour in this thesis was to create a front to back landing mechanism that combines the existing vision based landing site detection procedure with the autonomous framework. In order to accomplish this, both the landing site detection mechanism as well as the autonomy had to be altered. Last but not least given that the structure from motion depth generation depends on lateral movement, which is less desirable for a drone navigating at low altitudes in unfamiliar surroundings, the utilization of a stereo camera presents a viable solution to attain real-time depth perception without necessitating lateral displacement.
+The conclusive high level objective of the LORNA science concept is the achievement of long range safe navigation including global localization, safe landing site detection and full system autonomy. The navigation endeavour is tackled using a visual-inertial odometry state estimator which uses map based localization to achieve global localization as well. Landing site acquisition is achieved using structure from motion based 3D reconstruction and a multi resolution depth elevation map used for landing zone segmentation. Finally, a state machine-based autonomous framework orchestrates the entire procedural workflow.
 
-The conclusive high level objective of the LORNA project is to autonomously fly high altitude long distance science missions using a map based localization enhanced state estimator. Whilst flying, point clouds are generated and processed. On that data landing sites are acquired and simultaneously ordered according to the respective quality. Initiating the autonomous landing sequence, landing sites can then be chosen and verified at low altitudes using a stereo camera. In case of successful verification the rotorcraft can land at the selected location. 
+The endeavour in this thesis was to create a front to back landing mechanism that combines the existing vision based landing site detection algorithm with the autonomous framework. In order to accomplish this, both the landing site detection algorithm as well as the autonomy had to be altered. Last but not least given that the structure from motion depth generation depends on lateral movement, which is less desirable for a drone navigating at low altitudes in unfamiliar surroundings, the utilization of a stereo camera for low altitude 3D reconstruction presents a viable solution to attain real-time depth perception without necessitating lateral displacement.
 
 \section{My Contribution}
-In this work I managed to implement an autonomous landing procedure which, given random mission waypoints, uses predetected landing sites to determine a safe landing zone to use for landing. This was achieved through the following contributions:
+In this work, I established the interface between the vision based landing site detection algorithm and the autonomous framework in order to make informed landing decisions based on detected landing sites. A safe and efficient landing mechanism was implemented in the existing autonomy. This mechanism utilizes a novel stereo camera 3D reconstruction procedure to avoid lateral motion at low altitudes.
 
-\subsection{Stereo Camera Depth Alternative}
-A stereo camera was implemented in the simulated drone model in order to get stereo sensor images. Additionally, a stereo camera depth node was put in place as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
+\begin{itemize}
+    \item \textbf{Stereo Camera Depth Alternative}
 
-An automatic switch was inserted between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board. This allows for minimal computational overhead as only one depth creation node runs at a time.
+    A stereo camera was implemented in the simulated drone model in order to get stereo sensor images. Additionally, a stereo camera depth node was put in place as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
+
+    An automatic switch was inserted between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board. This allows for minimal computational overhead as only one depth creation node runs at a time.
+    \item
+\end{itemize}
+% \subsection{Stereo Camera Depth Alternative}
+% A stereo camera was implemented in the simulated drone model in order to get stereo sensor images. Additionally, a stereo camera depth node was put in place as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
+
+% An automatic switch was inserted between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board. This allows for minimal computational overhead as only one depth creation node runs at a time.
 
 \subsection{Flight Analysis at 100m Altitude}
 The visual landing site detection pipeline has not been tested at 100m altitudes prior to this work. As LORNA plans to fly at this cruise altitude, the quality of the structure from motion point clouds as well as the LSD performance is mission critical and was therefore evaluated. %TODO how much do I really analyze it?
