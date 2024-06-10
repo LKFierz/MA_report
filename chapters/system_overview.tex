@@ -106,55 +106,71 @@ Using the two frames and the parallax distance between the detected features due
 
 \subsubsection{Depth Aggregation}\label{subsubsec:setup:aggregation}
 
+The foundation of the landing site detection mechanism is a rolling buffer based multi resolution depth map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
+
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.25]{images/system_overview/DEM.png}
-    \caption{Multi Resolution Depth Map}
+    \caption{Multi resolution depth map as displayed in \citep{LSD1}}
     \label{fig:DEM}
 \end{figure}
 
-The foundation of the landing site detection mechanism is a rolling buffer based multi resolution depth map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
+As introduced in \citet{LSD2}, each cell in this dense elevation map (DEM) is composed of an optimal mixture of Gaussian (OMG) state described by the following three variables:
 
-Each point cloud input iteration, the measurements are placed in the respective cells based on the level of detail of the perceived points. In a subsequent step the measurements are pooled up and down the resolution layers in order to make the DEM more consistent and interpolate missing values.
+\begin{itemize}
+    \item $\mu$ - The mean of the depth at this cell
+    \item $\sigma^2$ - The variance of the depth measurements
+    \item $S$ - An auxiliary variable to keep track of past measurement's uncertainties
+\end{itemize}
 
-Each cell in this dense elevation map (DEM) is comprised of an optimal mixture of gaussian (OMG) state as described in \citet{LSD2}.
+Each point cloud input iteration, a depth measurement and the associated stereo depth uncertainty is received. The measurements are placed in the respective cells based on the level of detail (LoD) of the perceived points. The LoD being $\frac{z}{f}$, where z is the depth measurement and f is the focal length of the camera. Specifically, an incoming measurement is placed in the highest resolution layer of all layers which are coarser than the incoming measurement. If the measurement has a larger pixel footprint than any of the layers, it is entered in the coarsest layer which is the top.
 
-Its update step looks like this:
+In a subsequent step the measurements are pooled up to the top layer and down again in order to make the DEM more consistent and interpolate missing values. The same result could be achieved by entering each measurement individually and directly pooling it up and down the cells that cover its footprint. However, splitting the procedure into a step that acquires all measurements and second task that collectively pools all cells, achieves the same with fewer updates.
 
-\begin{align}
-    S_t &= S_{t-1} + \sigma_{x_t}^{-2}\\
-    \mu_t &=  \frac{1}{S_t}\left(S_{t-1}\mu_{t-1} + \frac{x_t}{\sigma_{x_t}^2}\right)\\
-    \sigma_t^2 &=  \frac{1}{S_t}\left( S_{t-1}(\sigma_{t-1}^2 + \mu{t-1}^2) + \frac{x_t^2}{\sigma{x_t}^2} + 1 \right) - \mu_t^2
-    \label{eq:OMG_updates}
-\end{align}
-
-Where $\mu_t$ is the cell's new mean value, $\sigma_t^2$ is the cell's variance and $S_t$ defines an auxilliary variable to keep track of all past variances within a single scalar.
-
-Thus similar to Kalman filters, the OMG cells' uncertainties decline over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. 
+Similar to Kalman filters, the OMG cells' uncertainties improve over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. 
 
 \subsubsection{Hazard Segmentation}\label{subsubsec:setup:haz_seg}
 
-On the created depth map landing sites can then be detected. This is done using a roughness and slope assessment of the perceived terrain. Roughness defines the maximum absolute altitude difference around a cell in a certain resolution layer and slope is determined by fitting a plane to the vicinity of a considered point.
+On this created DEM, landing sites are then detected. This is done using a roughness and slope assessment of the perceived terrain. Roughness defines the maximum absolute altitude difference around a cell for a given resolution layer and slope is determined by fitting a plane to the vicinity of a considered point.
 
-If the roughness and slope values lie within the acceptance threshold, the spot is recognized as a landing site and marked as such in a binary landing map. 
+The roughness check is done for each resolution layer of the DEM. To assess the roughness around a cell, all surrounding cells within a predefined proximity threshold are considered, and the maximum value is stored. The computational cost of the hazard segmentation is dominated by the roughness checks at the lower layers. Therefore, to make it more efficient, a minimum and maximum buffer were introduced respectively. This allows to store the extreme values at a given location and then for the roughness assessment of a neighboring cell, the knowledge about that mostly overlapping area can be used. With this, only the new margin of cells has to be considered for minimum/maximum candidates of subsequent cells. Finally, the roughness of a cell is the difference between the maximum and minimum value in that cell's vicinity.
+
+A visualization of this procedure is shown in \cref{fig:lsd_roughness_check}:
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.5]{images/system_overview/roughness_check.png}
+    \caption{Optimized roughness assessment as shown in \citet{LSD2}}
+    \label{fig:lsd_roughness_check}
+\end{figure}
+
+As the slope of a location depends on a larger encompassing area around a cell, the assessment of the slope at the highest (coarsest) layer is sufficient. For each cell in the top layer and the area surrounding it, a plane is fitted using the linear least squares equation $Ax = b$ where A is a matrix containing in each row the x and y coordinates as well as a homogeneous coordinate for the plane's offset. The solution vector x contains the plane's properties $\left(N_x, N_y, d\right)$ where $N_x$ and $N_y$ define the plane's normal vector's orientation and $d$ is the plane's offset. Note that $N_z$ was fixed to be 1. The maximum inclination can then be calculated as the angle between the normalized normal vector and the z axis $\theta = \arccos\left(\frac{N \cdot e_z}{||N||}\right)$
+
+If the roughness and inclination values lie within the acceptance threshold, the spot is recognized as a landing site and marked as such in a binary landing map. 
 
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.5]{images/system_overview/ls_map.png}
-    \caption{Binary Landing Site Map}
+    \caption{Binary landing site map from the LSD debug image (\citet{LSD2})}
     \label{fig:ls_map}
 \end{figure}
 
 \subsubsection{Landing Site Selection}\label{subsubsec:setup:ls_select}
 
-After applying a distance transform on the landing site map and performing non-maximum suppression on the landing site sizes, the biggest landing sites are found. Their positions are then refined one last time using a mean shift algorithm that considers roughness, uncertainty and size once again. 
+After applying a distance transform on the landing site map, which yields the minimum pixel distance to a non-landing site, and performing non-maximum suppression on the landing site sizes, the landing sites with the largest valid circular areas are found. 
+
+%TODO: show image of non-max suppression
+
+Their positions are then refined by applying a mean shift algorithm for a few iterations. This algorithm uses a Gaussian kernel which considers the roughness, normalized distance transform and the uncertainty of the cells in the sampled region. The exact implementation is shown in \citet{LSD2}.
 
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.5]{images/system_overview/ls_map_nms.png}
-    \caption{Binary Landing Site Map after Non Maximum Suppression}
+    \caption{Binary landing site map after non-maximum suppression}
     \label{fig:ls_map_nps}
 \end{figure}
+
+\cref{fig:ls_map_nps} shows the landing map with the final shifted maximum area landing sites. These optimized landing site candidates are indicated with the blue crosses. 
 
 \clearpage %HERE
 
@@ -174,43 +190,44 @@ After applying a distance transform on the landing site map and performing non-m
     \label{fig:lsd_debug}
 \end{figure}
 
-The landing site detection debug image is a good comprehensive visualization of the landing spot detection procedure. 
+The landing site detection debug image is a good comprehensive visualization of the landing site detection algorithm. 
 
-On the left one can see the multi-resolution map displaying the same terrain area in different resolutions. Red pixels are closer, blue further away.
+On the left, one can see the multi-resolution map displaying the same terrain area in different resolutions. Red pixels are closer, blue further away.
 
-In the middle one can see the uncertainties of the detected points. For simplification purposes the variance of the detected points is simply the associated stereo depth error.
+In the middle one can see the uncertainties of the detected points. Blue signals a low uncertainty while red denotes a high uncertainty. 
 
-On the right is the above mentioned binary landing site map. Green indicates valid landing sites, and the blue crosses indicate the chosen non-max suppressed and mean shifted landing sites.
+On the right is the above-mentioned binary landing site map. Green indicates valid landing sites, and the blue crosses indicate the chosen non-maximum suppressed and mean shifted landing sites.   
 
 \section{Autonomy}\label{sec:setup:autonomy}
 
-The autonomy framework was developed within the LORNA project. It is the overarching instance governing all the necessary behaviors and constituting the interface between all the different nodes of the process. It is connected to the flight controller through the Mavros wrapper of the Mavlink protocol. With this connection it can send waypoints and parameter updates to the flight controller.
-In addition to the in \cref{fig:lorna_setup} shown connections it also communicates with a healthguard node keeping track of the systems health state and alerting in case of anomalies.
+The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors and constituting the interface between all the different nodes of the process. It is connected to the flight controller through the MAVROS wrapper of the MAVLink protocol. With this connection it can send waypoints and parameter updates to the flight controller.
+In addition to the in \cref{fig:lorna_setup} shown connections it also communicates with a health guard node keeping track of the system's health state and sending alerts in case of anomalies.
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.45]{images/system_overview/autonomy.png}
+    \includegraphics[scale=0.25]{images/system_overview/autonomy.png}
     \caption{Simplified Structure of the Autonomy}
     \label{fig:autonomy}
 \end{figure}
+
 
 The core of the autonomy is the state machine as depicted in \cref{fig:autonomy}. In each state the respective node is executed which most often is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff as well as the landing node. As indicated in bold, the landing node is the most crucial node in this work as this is where the landing behavior using the landing sites is executed.
 
 In a separate process the landing site manager processes incoming landing sites. Prior to this work the landing site interface was a dummy implementation serving the framework's completeness.
 
-The connector threads interact with the flight controller through Mavros and the other LORNA nodes through a ROS connector.
+The connector threads interact with the flight controller through MAVROS and the other LORNA nodes through a ROS connector.
 
 \subsection{Behavior Tree}\label{subsec:setup:behavior_tree}
 
-The behavior tree framework within the autonomy is implemented in the traditional way, each comprised of a root node, control flow nodes and action nodes resulting in a modular structure enabling tasks of tremendous complexity. Additionally decorator nodes can be used which alter a single node and function as an add-on on the same level.
+The behavior tree framework within the autonomy is implemented in the traditional way, each comprised of a root node, control flow nodes and action nodes resulting in a modular structure enabling tasks of tremendous complexity. Additionally, decorator nodes can be used which alter a single node and function as an add-on on the same level.
 
 \subsubsection{Control Flow Nodes}
 
 The most imported control flow nodes which were used in this thesis are the following:
 
 \begin{itemize}
-    \item \textbf{Fallback Node}: Attempts to execute first child node and if successfull returns a success state. Else it continues to the next child node. If no child node was successfull it returns the failure state. A boolean operator analogy for this would be the logical OR, stopping at the first successful entity.
-    \item \textbf{Sequence Node}: Executes one child after another. It only returns the success state if all children nodes ran successfully. Otherwise it returns false. Here an analogy would be the logical AND boolean operator.
+    \item \textbf{Fallback Node}: Attempts to execute first child node and if successful, it returns a success state. Else it continues to the next child node. If no child node was successful it returns the failure state. A boolean operator analogy for this would be the logical OR, stopping at the first successful entity.
+    \item \textbf{Sequence Node}: Executes one child after another. It only returns the success state if all children nodes ran successfully. Otherwise, it returns false. Here an analogy would be the logical AND boolean operator.
 \end{itemize}
 
 \subsubsection{Decorator Nodes}\label{subsubsec:decorator_nodes}

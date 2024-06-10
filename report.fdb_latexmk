@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex report"] 1717968610.69575 "report.aux" "report.bbl" "report" 1717968630.01253 0
+["bibtex report"] 1718010152.83237 "report.aux" "report.bbl" "report" 1718010156.73388 0
   "./bibliography/IEEEtranN.bst" 1652713271 63140 0fbee010820069093ff128821573b034 ""
   "./bibliography/references.bib" 1717967055.5596 11033 35a8d3a18985c26622b29dbc02f9b8cf ""
-  "report.aux" 1717968629.54215 7380 cdfd60ccb955d6fcd888426248a6df27 "pdflatex"
+  "report.aux" 1718010156.27935 7947 2bc684c4dffe446dacff5bc73b9b965e "pdflatex"
   (generated)
   "report.bbl"
   "report.blg"
   (rewritten before read)
-["pdflatex"] 1717968626.82169 "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" "report.pdf" "report" 1717968630.01273 0
+["pdflatex"] 1718010153.00897 "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" "report.pdf" "report" 1718010156.73408 0
   "/Users/lfierz/Documents/studium/master/MA/RSL/Report/report.tex" 1717958257.65381 4039 908309b5b6364a10faf203a16ab3b68b ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -38,7 +38,6 @@
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb" 1248133631 35752 024fb6c41858982481f6968b5fc26508 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb" 1248133631 32362 179c33bbf43f19adbb3825bb4e36e57a ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb" 1248133631 32762 224316ccc9ad3ca0423a14971cfa7fc1 ""
-  "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb" 1248133631 32569 5e5ddc8df908dea60932f3c484a54c0d ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb" 1248133631 32716 08e384dc442464e7285e891af9f45947 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb" 1248133631 37944 359e864bd06cde3b1cf57bb20757fb06 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb" 1215737283 138258 6525c253f16cededa14c7fd0da7f67b2 ""
@@ -207,26 +206,27 @@
   "/usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt" 1715001783 8221443 e067fdfb8c20f28b1c56333bfcd3a119 ""
   "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
   "chapters/acronyms.tex" 1717955080.78412 698 9ecc1c6e88fd4ba9d09ce487770bb3c6 ""
-  "chapters/system_overview.tex" 1717968626.64781 16173 e91abf57f96bb4049109b2751decee99 ""
+  "chapters/system_overview.tex" 1718010148.90146 19187 6e00f3e8b320f91d9261429a2ae8d866 ""
   "images/examples/eth_logo.pdf" 1715940524.39389 23696 7e7913b04ccd98dd60e95740d44ce137 ""
   "images/examples/rsl_logo.pdf" 1715940524.39531 419511 d75ec7e5232fd6916c2941ab621f8ae5 ""
   "images/system_overview/BA.png" 1717966857.88527 35782 e96e904ff2fd435d8467520f1dd2cef5 ""
   "images/system_overview/DEM.png" 1715941352.3358 90793 d4f935135dddf443dc084a29f844c8cd ""
   "images/system_overview/GZ_flowchart.png" 1715860987.20802 30314 d0e0f84dcbef873983a5482f1fc99b69 ""
-  "images/system_overview/autonomy.png" 1715954870.50073 88713 3a8f739bd83de791a2cc78f166b250f9 ""
+  "images/system_overview/autonomy.png" 1718010124.31907 347418 f2e2c62215470f2ede8ff2f415064cd4 ""
   "images/system_overview/ls_map.png" 1715949867.00012 114851 dc925a0bf4749691036bfb28539b5643 ""
   "images/system_overview/ls_map_nms.png" 1715949888.05467 120013 db580cd6746be4d2b1df741e04df9d46 ""
   "images/system_overview/lsd_debug_image.png" 1715951583.48201 386921 04e3162c82e355dcb50ecd941f989cdd ""
   "images/system_overview/lsd_debug_reference.png" 1715951583.49556 1338585 577978385ae35791da54121cefd48771 ""
+  "images/system_overview/roughness_check.png" 1718002075.98342 563685 dd8f9082cdc84cec097c59c263d78758 ""
   "images/system_overview/setup_flowchart.png" 1715782569.88658 629749 5a3713ec32d88315caa6c0883cc68c29 ""
   "images/system_overview/setup_flowchart_with_vio.png" 1715781194.02639 625972 5b984a25e2604a74722a8963a0814321 ""
   "packages/ethrsl.sty" 1711749089 4555 ca65a2a84d71ea0eb91b62f70e7ce5b0 ""
   "preambles/rsl_preamble.tex" 1717404322.81798 1659 19ec4dad391edf4651db322630055dbe ""
-  "report.aux" 1717968629.54215 7380 cdfd60ccb955d6fcd888426248a6df27 "pdflatex"
-  "report.bbl" 1717968610.85708 2003 f822e64e53c7f93237ebb675fe3189c0 "bibtex report"
-  "report.out" 1717968629.5434 1198 6d509a8a9d70d9d8a27a7017fb4d7694 "pdflatex"
+  "report.aux" 1718010156.27935 7947 2bc684c4dffe446dacff5bc73b9b965e "pdflatex"
+  "report.bbl" 1718010153.0028 2199 eb14074f33a62997b5a8b6e6e6d5a60c "bibtex report"
+  "report.out" 1718010156.28064 1198 6d509a8a9d70d9d8a27a7017fb4d7694 "pdflatex"
   "report.tex" 1717958257.65381 4039 908309b5b6364a10faf203a16ab3b68b ""
-  "report.toc" 1717968629.54371 1284 e03ece7a28560375241060d4b6b20c07 "pdflatex"
+  "report.toc" 1718010156.28092 1285 9f32391c37e4dcde7c7fa6a3149de863 "pdflatex"
   (generated)
   "report.aux"
   "report.log"
