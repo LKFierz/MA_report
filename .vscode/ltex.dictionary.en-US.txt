@@ -12,3 +12,8 @@ MAVLink
 MAVROS
 reprojection
 LoD
+ChangeAltitudeAction
+HoldPoseAction
+LandingAction
+NavigateToWaypointAction
+RotateTowardsWaypointAction

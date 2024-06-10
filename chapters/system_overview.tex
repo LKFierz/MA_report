@@ -200,34 +200,73 @@ On the right is the above-mentioned binary landing site map. Green indicates val
 
 \section{Autonomy}\label{sec:setup:autonomy}
 
-The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors and constituting the interface between all the different nodes of the process. It is connected to the flight controller through the MAVROS wrapper of the MAVLink protocol. With this connection it can send waypoints and parameter updates to the flight controller.
-In addition to the in \cref{fig:lorna_setup} shown connections it also communicates with a health guard node keeping track of the system's health state and sending alerts in case of anomalies.
+The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors during a mission and constituting the interface between all the different nodes of the LORNA pipeline. As shown in \cref{fig:lorna_setup}, it is connected to the flight controller through the MAVROS wrapper of the MAVLink protocol and using a ROS connector, it also interacts with other LORNA nodes such as the landing site detector. The core of the autonomy however, is a state machine. A visualization of the setup is shown in \cref{fig:autonomy}.
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/system_overview/autonomy.png}
-    \caption{Simplified Structure of the Autonomy}
+    \includegraphics[scale=0.22]{images/system_overview/autonomy.png}
+    \caption{Simplified overview of the autonomy}
     \label{fig:autonomy}
 \end{figure}
 
+The MAVROS connector establishes the off board mode in the PX4 autopilot in order to control the parameters and waypoints through the autonomy directly, effectively replacing the flight controller's decision-making behavior. 
 
-The core of the autonomy is the state machine as depicted in \cref{fig:autonomy}. In each state the respective node is executed which most often is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff as well as the landing node. As indicated in bold, the landing node is the most crucial node in this work as this is where the landing behavior using the landing sites is executed.
+The ROS connector receives health events from the health guard, the drone's current pose from the flight controller's state estimator and, important for this work, the detected landing sites from the LSD algorithm.
 
-In a separate process the landing site manager processes incoming landing sites. Prior to this work the landing site interface was a dummy implementation serving the framework's completeness.
+In parallel to both the state machine and the connector, the autonomy contains another separate entity, the landing site manager. It processes the incoming landing sites from the LSD algorithm which were received by the ROS connector. Each landing site is ordered according to a heuristic to determine for each point in time what the best landing site is. In this thesis the landing site manager was expanded significantly regarding the heuristics considered and the general handling of detected landing sites. 
 
-The connector threads interact with the flight controller through MAVROS and the other LORNA nodes through a ROS connector.
+Both the landing site manager and the connector are implemented as singleton nodes for easy use throughout the entire autonomy framework. This means that they are accessible in every action performed by any state of the state machine without the need of instantiation of a landing site manager object instance. This is achieved by removing the copy constructor of the class as well as the assignment operator and creating an instance acquisition function, which returns a pointer to the single static instantiation of the class.
+
+\subsection{Finite-State Machines}
+
+Before going into the state machine implementation of the autonomy framework, a finite-state machine's working principle is explained:
+
+\subsubsection{Working Principle}
+
+A finite-state machine is a mathematical model of computation which allows the hierarchical definition of a system with a finite number of states. It is defined by a finite set of possible states with an initial state, the transition order in between these states, the events that trigger these transitions and the actions which are performed when the system is in a given state. It provides a very clearly structured implementation of the various states that a system can be in and is therefore a matching choice for the implementation of a rotorcraft mission. 
+
+\subsubsection{The Finite-State Machine in the Autonomy Framework}
+
+In this setup, the autonomy framework itself acts like a finite state machine. At any given moment it is in a state and a tick is executed. During nominal conditions, this simply denotes a tick in the finite-state machine. In the unfortunate case of a health event however, the state machine handles the health event based on in what state the FMS currently is. For instance, if it arises during initiation, the state machine simply transitions to the termination state, aborting the flight. In contrast, if the FSM's current state is the mission state, the rotorcraft immediately returns to the home position to land.
+
+In each state during a state machine tick the respective behavior node is executed. Most often this is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff state, the emergency state as well as the landing state. For this thesis the landing node indicated in bold in \cref{fig:autonomy} is the most crucial part of the state machine. This is where the adaptive landing decisions are made to choose an adequate landing zone and orchestrate safe traversal to that location before finally landing on the surface.
 
 \subsection{Behavior Tree}\label{subsec:setup:behavior_tree}
 
-The behavior tree framework within the autonomy is implemented in the traditional way, each comprised of a root node, control flow nodes and action nodes resulting in a modular structure enabling tasks of tremendous complexity. Additionally, decorator nodes can be used which alter a single node and function as an add-on on the same level.
+A behavior tree is tool for systematic hierarchical plan execution. It enables the creation of complex tasks which are comprised of various simple tasks without having to worry about the implementation of such a small modular task. In contrast to a state machine, the core of a behavior is a task as opposed to a state. This is a matching choice of framework for the creation of complex adaptive flight behaviors. Especially since a rotorcraft mission can be easily split into small modular maneuvers such as ascension, lateral motion and rotation.
+
+\subsubsection{Working Principle}
+As the name suggests, a behavior tree can be visualized as a directed tree where the starting point of the tree is the root node. 
+
+After the root node, three categories of tree nodes can follow:
+
+\begin{itemize}
+    \item Control flow nodes
+    \item Action nodes
+    \item Decorator nodes
+    \end{itemize}
+    
+    Control flow nodes are comparatively higher level nodes which manage the execution flow of the behavior tree.
+    
+    The action nodes define the actual low level tasks performed in the broader behavior tree setup. 
+    
+    Lastly, the decorator nodes are auxiliary nodes which directly alter the workflow of action nodes in order to achieve smoother and more complex tree structures.
+    
+    Preceding nodes in a tree are called parent nodes while subsequently executed nodes are called child nodes of a node. A root node has no parent node and exactly one child node while control nodes have one parent node and potentially several child nodes. Action nodes are leaf nodes which have a parent node but no child nodes and decorator nodes have both one parent and one child node which they affect.
+
+    Similarly to a state machine, the workflow of a behavior tree starts with the root node which continuously sends a tick signal to its child node. 
 
 \subsubsection{Control Flow Nodes}
 
 The most imported control flow nodes which were used in this thesis are the following:
 
 \begin{itemize}
-    \item \textbf{Fallback Node}: Attempts to execute first child node and if successful, it returns a success state. Else it continues to the next child node. If no child node was successful it returns the failure state. A boolean operator analogy for this would be the logical OR, stopping at the first successful entity.
-    \item \textbf{Sequence Node}: Executes one child after another. It only returns the success state if all children nodes ran successfully. Otherwise, it returns false. Here an analogy would be the logical AND boolean operator.
+    \item Fallback Node
+    
+    Attempts to execute the first child node and if successful, it returns a success state. Else it continues to the next child node. If no child node was successful it returns the failure state. A boolean operator analogy for this would be the logical OR, stopping at the first successful entity.
+    \item Sequence Node
+    
+    Executes one child after another. It only returns the success state if all children nodes ran successfully. Otherwise, it returns false. Here an analogy would be the logical AND boolean operator.
 \end{itemize}
 
 \subsubsection{Decorator Nodes}\label{subsubsec:decorator_nodes}
@@ -235,10 +274,18 @@ The most imported control flow nodes which were used in this thesis are the foll
 The most important decorator nodes are:
 
 \begin{itemize}
-    \item \textbf{Inverter Node}: Inverts the output of an action node. Boolean analogon would be the ! (not) operator.
-    \item \textbf{Repeat Node}: Repeats a node a number of times until fails or a timeout is reached. 
-    \item \textbf{Retry Node}: Similiar to the repeat node loop but it repeats the node a number of times only until it succeeds or a defined timeout is reached.
-    \item \textbf{Timeout Node}: Adding a timeout to an action node which otherwise wouldn't be temporally limited.
+    \item Inverter Node
+    
+    Inverts the output of an action node. A boolean analogy would be the "!" (not) operator.
+    \item Repeat Node
+    
+    Repeats a node a number of times until fails or a timeout is reached. 
+    \item Retry Node
+    
+    Similar to the repeat node loop, but it repeats the node a number of times only until it succeeds, or a defined timeout is reached.
+    \item Timeout Node
+    
+    Adding a timeout to an action node which otherwise wouldn't be temporally limited.
 \end{itemize}
 
 \subsubsection{Action Nodes}\label{subsubsec:setup:action_nodes}
@@ -246,11 +293,21 @@ The most important decorator nodes are:
 There are a multitude of actions required for the various subtask a rotorcraft has to perform during a mission. The most important ones for the landing behavior in this work are the following:
 
 \begin{itemize}
-    \item ChangeAltitudeAction: Changes the drone's altitude to the given value. The ascend / descend velocity diminishes upon reaching proximity to the desired waypoint.
-    \item HoldPoseAction: Self-explanatory: the drone holds the current pose for a given time.
-    \item LandingAction: Similar to the ChangeAltitudeAction, it descends to a waypoint which in this case is simply the ground vertically below the drone's current position. Upon reaching a certain proximity to the landing point, the descent velocity is reduced to a minimum in order to accomplish smooth landing.
-    \item NavigateToWaypointAction: Lateral movement to the given waypoint. Same proximity based slow-down mechanism as ChangeAltitudeAction and LandingAction.
-    \item RotateTowardsWaypointAction: Rotates the drone to face the given waypoint.
+    \item ChangeAltitudeAction
+    
+    Changes the drone's altitude to the given value. The ascend / descend velocity diminishes upon reaching proximity to the desired waypoint.
+    \item HoldPoseAction
+    
+    Self-explanatory: the drone holds the current pose for a given time.
+    \item LandingAction
+    
+    Similar to the ChangeAltitudeAction, it descends to a waypoint which in this case is simply the ground vertically below the drone's current position. Upon reaching a certain proximity to the landing point, the descent velocity is reduced to a minimum in order to accomplish smooth landing.
+    \item NavigateToWaypointAction
+    
+    Lateral movement to the given waypoint. Same proximity based slow-down mechanism as ChangeAltitudeAction and LandingAction.
+    \item RotateTowardsWaypointAction
+    
+    Rotates the drone to face the given waypoint.
 \end{itemize}
 
 
