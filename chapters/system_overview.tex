@@ -1,7 +1,7 @@
 \chapter{System Overview}
 
 \cref{fig:lorna_setup} shows the high level architecture of the LORNA concept. 
-
+% TODO: write about QGroundControl
 The xVIO state estimator uses the camera, IMU and laser range finder sensor onboard the vehicle in order to estimate the current state of the rotorcraft at any given time. Using map based localization (MBL) on HiRISE satellite maps allows for global localization. These poses are given to the flight controller and the output from that internal estimator is fed to the autonomy as well as the landing site detection nodes.
 
 As mentioned above, the rotorcraft is flown using a PX4 flight controller. It communicates with the autonomy framework using the MAVROS ROS wrapper for the MAVLink rotorcraft protocol. This connection is used for the transmission of waypoint information and the setting of parameters.
@@ -15,7 +15,7 @@ The sensor images and their respective associated drone pose are given the landi
     \includegraphics[scale=0.18]{images/system_overview/setup_flowchart_with_vio.png}
     \caption{LORNA Project Setup}
     \label{fig:lorna_setup}
-\end{figure}
+\end{figure}%TODO: fix state estimator arrow
 
 As the state estimator and the map based localization were not fully implemented at the time of this work, ground truth pose information from the simulated sensors was used instead. This is shown in \cref{fig:lorna_setup_GT_pose}
 
@@ -200,7 +200,16 @@ On the right is the above-mentioned binary landing site map. Green indicates val
 
 \section{Autonomy}\label{sec:setup:autonomy}
 
-The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors during a mission and constituting the interface between all the different nodes of the LORNA pipeline. As shown in \cref{fig:lorna_setup}, it is connected to the flight controller through the MAVROS wrapper of the MAVLink protocol and using a ROS connector, it also interacts with other LORNA nodes such as the landing site detector. The core of the autonomy however, is a state machine. A visualization of the setup is shown in \cref{fig:autonomy}.
+The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors during a mission and constituting the interface between all the different nodes of the navigation pipeline.
+
+The autonomy framework is aided by various support nodes. These are listed below:
+
+\begin{itemize}
+    \item Mission planner
+
+    As the name suggests, the mission planner enables the easy packaging of a missions waypoints into a format that the autonomy can parse and understand. For this, it needs merely a plan file from a ground station such as the used QGroundControl in this work. From this, the mission csv file is created with the plain navigation information required to fly the desired course. Furthermore, the mission planner allows the user to add additional tasks to the mission waypoints. This allows for the very fast creation of missions with the potential modular enhancement of waypoints for science tasks for instance. 
+\end{itemize}
+As shown in \cref{fig:lorna_setup}, it is connected to the flight controller through MAVROS and using a ROS connector, it also interacts with other LORNA nodes such as the landing site detector. The core of the autonomy however, is a state machine. A visualization of this setup is shown in \cref{fig:autonomy}.
 
 \begin{figure}[ht!]
     \centering
@@ -209,15 +218,21 @@ The autonomy framework was developed within the LORNA project as a master's thes
     \label{fig:autonomy}
 \end{figure}
 
+The connector consists of two parts and constitutes the interface to the other software instances of the project:
+
 The MAVROS connector establishes the off board mode in the PX4 autopilot in order to control the parameters and waypoints through the autonomy directly, effectively replacing the flight controller's decision-making behavior. 
 
-The ROS connector receives health events from the health guard, the drone's current pose from the flight controller's state estimator and, important for this work, the detected landing sites from the LSD algorithm.
+The ROS connector receives health events about the systems status from a health guard node, the drone's current pose from the flight controller's state estimator and, important for this work, the detected landing sites from the LSD algorithm.
 
 In parallel to both the state machine and the connector, the autonomy contains another separate entity, the landing site manager. It processes the incoming landing sites from the LSD algorithm which were received by the ROS connector. Each landing site is ordered according to a heuristic to determine for each point in time what the best landing site is. In this thesis the landing site manager was expanded significantly regarding the heuristics considered and the general handling of detected landing sites. 
 
 Both the landing site manager and the connector are implemented as singleton nodes for easy use throughout the entire autonomy framework. This means that they are accessible in every action performed by any state of the state machine without the need of instantiation of a landing site manager object instance. This is achieved by removing the copy constructor of the class as well as the assignment operator and creating an instance acquisition function, which returns a pointer to the single static instantiation of the class.
 
-\subsection{Finite-State Machines}
+\subsection{Health Guard}
+
+\subsection{Estimator Interface}
+
+\subsection{Finite-State Machine}
 
 Before going into the state machine implementation of the autonomy framework, a finite-state machine's working principle is explained:
 
