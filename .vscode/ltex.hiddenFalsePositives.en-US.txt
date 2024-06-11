@@ -1,0 +1,6 @@
+{"rule":"AFFORD_VBG","sentence":"^\\QTo this end, the drone moves laterally to a chosen landing site and then descends blindly to a certain verification altitude above that spot.\\E$"}
+{"rule":"AFFORD_VBG","sentence":"^\\QThis action was implemented with the purpose to allow us to descend to a certain fixed altitude above a chosen landing site.\\E$"}
+{"rule":"AFFORD_VBG","sentence":"^\\QAs the DEM created by LSD covers only a limited area, the obstacle altitude is only an indication of the highest terrain present at the chosen landing site.\\E$"}
+{"rule":"AFFORD_VBG","sentence":"^\\QThe drone hovers above the landing site for a pre-determined duration in place and attempts to re-detect the chosen landing site.\\E$"}
+{"rule":"CLOSE_SCRUTINY","sentence":"^\\QThis is arguably as important as the verification of a previous landing site as it yields a good candidate in close proximity.\\E$"}
+{"rule":"AFFORD_VBG","sentence":"^\\QThe yellow points are landing attempts, where a chosen landing site was not verified and thus banned from further consideration.\\E$"}

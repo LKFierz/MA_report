@@ -18,11 +18,11 @@ The specific advantage of a stereo camera implementation when compared to SFM ca
 
 As already mentioned above the need for lateral motion in itself is an undesirable necessity for a rotorcraft in unknown terrain. 
 
-In this setup the structure from motion approach is based on a key frame buffer which needs to be filled with image-pose pairs at different horizontal positions in order to start acquiring depth information. The current setting in the implementation \citet{SFM} uses 6 key frames. Therefore for a single point cloud it is necessary to move laterally 6 times in order to start perceiving depth. Following the depth error formula from a stereo disparity image (\ref{eq:SFM_depth_error}) and assuming an altitude of 2.5m above ground with a focal length of 256 pixels and a disparity error of 0.5 pixels, the necessary baseline in order to keep the depth error below a critical 5cm is:
+In this setup the structure from motion approach is based on a key frame buffer which needs to be filled with image-pose pairs at different horizontal positions in order to start acquiring depth information. The current setting in the implementation \citet{SFM} uses 6 key frames. Therefore, for a single point cloud it is necessary to move laterally 6 times in order to start perceiving depth. Following the depth error formula from a stereo disparity image (\ref{eq:SFM_depth_error}) and assuming an altitude of 2.5 m above ground with a focal length of 256 pixels and a disparity error of 0.5 pixels, the necessary baseline in order to keep the depth error below a critical 5 cm is:
 
 \subsection{Software vs Hardware Depth Perception}
 
-Structure from Motion, being a software node that relies on camera poses supplied by a state estimator, is by design subject to inaccuracies. A depth node based on a stereo camera on the other hand works with a fixed rigid baseline between the camera views. Thus for low altitude flights that bear the danger of collision, a more robust hardware approach is preferred.
+Structure from Motion, being a software node that relies on camera poses supplied by a state estimator, is by design subject to inaccuracies. A depth node based on a stereo camera on the other hand works with a fixed rigid baseline between the camera views. Thus, for low altitude flights that bear the danger of collision, a more robust hardware approach is preferred.
 
 \subsection{DEM Conversion}
 
@@ -34,13 +34,13 @@ When a landing site has been selected we need to make sure that the landing site
 
 \subsection{Efficiency}
 
-All in all the stereo camera setup allows us to perceive a landing site at course altitude and after having traversed horizontally to that location, we can simply descent to a stereo camera friendly altitude for the verification. Compared to repeated lateral coverage of the area in question this is a huge increase in efficiency.
+All in all the stereo camera setup allows us to perceive a landing site at course altitude and after having traversed horizontally to that location, we can simply descend to a stereo camera friendly altitude for the verification. Compared to repeated lateral coverage of the area in question this is a huge increase in efficiency.
 
 Looking in depth at the stereo alternative of depth generation, we can first analyze the theoretical threshold of this system.
 
 \section{Theoretical Analysis}
 
-When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lense. 
+When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lens. 
 
 Assuming a perfectly calibrated and rectified camera there is still always an inaccuracy in the depth estimation arising from the disparity error.
 
@@ -74,9 +74,9 @@ For the maximum altitude given a maximum allowable depth error this yields:
 
 Where $\Delta z$ is the depth error and $\Delta d$ the disparity error.
 
-The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10cm and a focal length of 256.
+The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10 cm and a focal length of 256.
 
-With these properties and estimating a subpixel precision disparity error of 0.5 pixels the depth error at varying altitudes looks as follows:
+With these properties and estimating a subpixel-precision disparity error of 0.5 pixels the depth error at varying altitudes looks as follows:
 
 \begin{figure}
     \centering
@@ -84,23 +84,23 @@ With these properties and estimating a subpixel precision disparity error of 0.5
     \label{fig:stereo_limit}
 \end{figure}
 
-Let's assume we allow a maximum depth error of 10cm. Considering this constraint we can fly at a maximum altitude of about 3m as indicated in \cref{fig:stereo_limit}.
+Let's assume we allow a maximum depth error of 10 cm. Considering this constraint we can fly at a maximum altitude of about 3 m as indicated in \cref{fig:stereo_limit}.
 
-This limitatin has to be kept in mind. However it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
+This limitation has to be kept in mind. However, it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
 
 \section{Implementation}
 
-Like Structure from Motion, the stereo depth instance is a ros node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, camera images and a ground truth camera pose from the simulation were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed baseline.
+Like Structure from Motion, the stereo depth instance is a ROS node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, camera images and a ground truth camera pose from the simulation were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed baseline.
 
-The stereo depth implementation was done using opencv's StereoSGBM algorithm. As stereo depth generation is a widely known topic I won't go into the details here.
+The stereo depth implementation was done using OpenCV's StereoSGBM algorithm. As stereo depth generation is a widely known topic I won't go into the details here.
 
-The final output of the node is a generated pointcloud in the world frame together with two poses representing the camera locations of the generated pointcloud.
+The final output of the node is a generated point cloud in the world frame together with two poses representing the camera locations of the generated point cloud.
 
 \subsection{Transform Overview}
 
 A critical part of navigation is always the consistency of the coordinate systems in which quantities are represented. Hereafter is a display of the present coordinate systems in the stereo camera setup.
 
-\subsection{Landing Site Detection withouth Lateral Motion}
+\subsection{Landing Site Detection without Lateral Motion}
 
 Taking off vertically with the drone in the simulation, the first landing site without lateral motion was found.
 
@@ -113,13 +113,13 @@ Taking off vertically with the drone in the simulation, the first landing site w
 \begin{figure}
     \centering
     \includegraphics[scale=0.34]{images/preparation/stereo/ascent_sim.png}
-    \caption{Drone during vertical ascent in simualation}
+    \caption{Drone during vertical ascent in simulation}
 \end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.45]{images/preparation/stereo/stereo_pointcloud.png}
-    \caption{Rviz visualization of created point cloud from stereo camera}
+    \caption{RViz visualization of created point cloud from stereo camera}
 \end{figure}
 \clearpage %HERE
 
@@ -133,11 +133,11 @@ Taking off vertically with the drone in the simulation, the first landing site w
 
 In order to achieve the final desired perception mechanism of flying laterally with SFM and using a stereo camera depth node at low altitudes, one needs to switch between the two alternatives.
 
-The obvious flag to use in the switching mechanism is the current altitude above ground. This could be achieved by analyzing the generated point cloud at a given iteration to the determine the median altitude which indicates the altitude above ground. This however is avoidable computational overhead.
+The obvious flag to use in the switching mechanism is the current altitude above ground. This could be achieved by analyzing the generated point cloud at a given iteration to determine the median altitude which indicates the altitude above ground. This however is avoidable computational overhead.
 
 As mentioned in \cref{sec:state_estimator} the drone has a laser range finder on board. This allows us to get an estimate of the altitude above ground at any given moment without the need for image processing.
 
-Therefore the switching is performed by using a separate ros subscriber which continuously checks the lrf's measurement and activates or deactivates the SFM node and stereo node respectively.
+Therefore, the switching is performed by using a separate ROS subscriber which continuously checks the LRF's measurement and activates or deactivates the SFM node and stereo node respectively.
 
 \clearpage %HERE
 \begin{figure}
@@ -160,7 +160,7 @@ Once implemented the landing site detection instance could be supplied by the st
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.25]{images/preparation/stereo_2.5m.png}
-    \caption{Stere camera depth supplied LSD debug image at 2.5m altitude}
+    \caption{Stere camera depth supplied LSD debug image at 2.5 m altitude}
     \label{qual_stereo_test}
 \end{figure}
 
@@ -169,7 +169,7 @@ Once implemented the landing site detection instance could be supplied by the st
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.25]{images/preparation/GT_2.5m.png}
-    \caption{GT depth supplied LSD debug image at 2.5m altitude}
+    \caption{GT depth supplied LSD debug image at 2.5 m altitude}
     \label{stereo_GT}
 \end{figure}
 
@@ -179,7 +179,7 @@ When comparing the result to the ground truth LSD output it can be seen that LSD
 
 Throughout the entirety of this project, the simulation's ground truth pose has been used which is the pose of the drone's base link. When applying the static camera transform to it, this yielded the ground truth camera pose. For stereo and SFM evaluation purposes however, also ground truth point clouds are required. 
 
-Obviously the same approach could be taken for a point cloud created by a depth camera in the simulation. However implementing such a depth camera with equal camera parameters as the reference stereo camera showed different results.
+Obviously the same approach could be taken for a point cloud created by a depth camera in the simulation. However, implementing such a depth camera with equal camera parameters as the reference stereo camera showed different results.
 
 
 \begin{figure}[ht]
@@ -197,7 +197,8 @@ Obviously the same approach could be taken for a point cloud created by a depth 
 
 \clearpage %HERE
 
-Looking at \cref{fig:GT_error_sim} and \cref{fig:GT_error_GT} the error looks like a simple translation error or is even hard to see at all. Focus for instance on the edge of the canape in the top left. When comparing the extrinsic parameters of the cameras, they were perfectly aligned. Further tests showed however that there was an actual error in the Gazebo Garden source code.\footnote[1]{For more footage on this see \cref{chapter:appendix:gz_depth_camera}} No matter what camera parameters were passed, the depth camera had the same fov. Changing this depth camera implementation finally allowed the usage of a gazebo depth camera as a supplier of ground truth depth information.
+Looking at \cref{fig:GT_error_sim} and \cref{fig:GT_error_GT} the error looks like a simple translation error or is even hard to see at all. Focus for instance on the edge of the canapé in the top left. When comparing the extrinsic parameters of the cameras, they were perfectly aligned. 
+Further tests showed however that there was an actual error in the Gazebo Garden source code.\footnote[1]{For more footage on this see \cref{chapter:appendix:gz_depth_camera}} No matter what camera parameters were passed, the depth camera had the same FOV. Changing this depth camera implementation finally allowed the usage of a gazebo depth camera as a supplier of ground truth depth information.
 
 
 

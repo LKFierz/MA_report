@@ -15,7 +15,7 @@ The sensor images and their respective associated drone pose are given the landi
     \includegraphics[scale=0.18]{images/system_overview/setup_flowchart_with_vio.png}
     \caption{LORNA Project Setup}
     \label{fig:lorna_setup}
-\end{figure}%TODO: fix state estimator arrow
+\end{figure}
 
 As the state estimator and the map based localization were not fully implemented at the time of this work, ground truth pose information from the simulated sensors was used instead. This is shown in \cref{fig:lorna_setup_GT_pose}
 
@@ -150,22 +150,27 @@ If the roughness and inclination values lie within the acceptance threshold, the
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.5]{images/system_overview/ls_map.png}
-    \caption{Binary landing site map from the LSD debug image (\citet{LSD2})}
+    \includegraphics[scale=0.5]{images/system_overview/landing_map.png}
+    \caption{Binary landing site map from the LSD debug image. Black is terrain not yet covered, red are invalid landing sites and green are detected valid landing sites.}
     \label{fig:ls_map}
 \end{figure}
 
 \subsubsection{Landing Site Selection}\label{subsubsec:setup:ls_select}
 
-After applying a distance transform on the landing site map, which yields the minimum pixel distance to a non-landing site, and performing non-maximum suppression on the landing site sizes, the landing sites with the largest valid circular areas are found. 
-
-%TODO: show image of non-max suppression
-
-Their positions are then refined by applying a mean shift algorithm for a few iterations. This algorithm uses a Gaussian kernel which considers the roughness, normalized distance transform and the uncertainty of the cells in the sampled region. The exact implementation is shown in \citet{LSD2}.
+After applying a distance transform on the landing site map, which yields the minimum pixel distance to a non-landing site, non-maximum suppression is performed. In this maximum peak detection only N landing sites are selected which have a size that is at least bigger than the largest landing site multiplied by a certain diminutive factor and are sufficiently far away from another peak to be considered an actually distinct landing site.
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.5]{images/system_overview/ls_map_nms.png}
+    \includegraphics[scale=0.5]{images/system_overview/non_max_suppression.png}
+    \caption{Non-maximum suppression: the three best landing sites at any given iteration are chosen of which the very best is encircled.}
+    \label{fig:non_max_sup}
+\end{figure}
+
+Lastly, their positions are refined by applying a mean shift algorithm for a few iterations. This algorithm uses a Gaussian kernel which considers the roughness, normalized distance transform and the uncertainty of the cells in the sampled region. The exact implementation is shown in \citet{LSD2}. The selection of multiple peaks at any given time is useful, as the mean shift algorithm is prone to local minima. So having multiple candidates and applying the mean shift algorithm to each one individually, makes the selection of a good landing site more probable.
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.5]{images/system_overview/landing_map_marked.png}
     \caption{Binary landing site map after non-maximum suppression}
     \label{fig:ls_map_nps}
 \end{figure}
@@ -200,55 +205,95 @@ On the right is the above-mentioned binary landing site map. Green indicates val
 
 \section{Autonomy}\label{sec:setup:autonomy}
 
-The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors during a mission and constituting the interface between all the different nodes of the navigation pipeline.
+The autonomy framework was developed within the LORNA project as a master's thesis (\citep{Autonomy}). It is the overarching instance governing all the necessary behaviors during a mission and constituting the interface between all the nodes of the navigation pipeline.
 
-The autonomy framework is aided by various support nodes. These are listed below:
-
-\begin{itemize}
-    \item Mission planner
-
-    As the name suggests, the mission planner enables the easy packaging of a missions waypoints into a format that the autonomy can parse and understand. For this, it needs merely a plan file from a ground station such as the used QGroundControl in this work. From this, the mission csv file is created with the plain navigation information required to fly the desired course. Furthermore, the mission planner allows the user to add additional tasks to the mission waypoints. This allows for the very fast creation of missions with the potential modular enhancement of waypoints for science tasks for instance. 
-\end{itemize}
-As shown in \cref{fig:lorna_setup}, it is connected to the flight controller through MAVROS and using a ROS connector, it also interacts with other LORNA nodes such as the landing site detector. The core of the autonomy however, is a state machine. A visualization of this setup is shown in \cref{fig:autonomy}.
+A visualization of the setup is shown in \cref{fig:autonomy}.
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.22]{images/system_overview/autonomy.png}
+    \includegraphics[scale=0.155]{images/system_overview/autonomy.png}
     \caption{Simplified overview of the autonomy}
     \label{fig:autonomy}
 \end{figure}
 
-The connector consists of two parts and constitutes the interface to the other software instances of the project:
+As shown in \cref{fig:autonomy}, the core of the autonomy framework is a finite-state machine that reactively orchestrates task execution, ensuring that the individual actions are carried out in an organized and structured manner. Alongside the state machine there are two separate entities. A connector and the landing site manager. Lastly, a blackboard module is used to transfer information between states of the state machine.
 
-The MAVROS connector establishes the off board mode in the PX4 autopilot in order to control the parameters and waypoints through the autonomy directly, effectively replacing the flight controller's decision-making behavior. 
+\subsection{Support Nodes}
 
-The ROS connector receives health events about the systems status from a health guard node, the drone's current pose from the flight controller's state estimator and, important for this work, the detected landing sites from the LSD algorithm.
+The autonomy framework is aided by three support nodes. These are shown at the bottom of \cref{fig:autonomy}:
 
-In parallel to both the state machine and the connector, the autonomy contains another separate entity, the landing site manager. It processes the incoming landing sites from the LSD algorithm which were received by the ROS connector. Each landing site is ordered according to a heuristic to determine for each point in time what the best landing site is. In this thesis the landing site manager was expanded significantly regarding the heuristics considered and the general handling of detected landing sites. 
+\begin{itemize}
+    \item Mission planner
 
-Both the landing site manager and the connector are implemented as singleton nodes for easy use throughout the entire autonomy framework. This means that they are accessible in every action performed by any state of the state machine without the need of instantiation of a landing site manager object instance. This is achieved by removing the copy constructor of the class as well as the assignment operator and creating an instance acquisition function, which returns a pointer to the single static instantiation of the class.
+    As the name suggests, the mission planner enables the easy packaging of a mission's waypoints into a format that the autonomy can parse and understand. For this, it needs merely a plan file from a ground station such as the used QGroundControl in this work. From this, the mission CSV file is created with the plain navigation information required to fly the desired course. Furthermore, the mission planner allows the user to add additional tasks to a mission waypoint. This allows for the very fast creation of missions with the potential modular enhancement of waypoints for science tasks.
+    \item Health Guard
+    
+    This node is a notification tool which alerts the autonomy in case of a health issue of the system. This could be a range of events such as an actuator failure or simply a low battery level. The connection to the autonomy is established using a ROS service in the ROS connector interface (\ref{subsubsec:connector}). Each autonomy tick, the health state is queried using the ROS service. In case of an issue, the autonomy assesses the gravity of the issue and, in case of an emergency, initiates the reactive behavior.
 
-\subsection{Health Guard}
+    \item Estimator Interface
+    
+    This is the auxiliary node which handles the localization inputs. It is designed to be able to handle incoming pose estimates from different sources such as GPS, Vicon (a motion capture based localization system) and LORNA's xVIO estimator. In this work, apart from occasional autonomy tests on the hardware using the Vicon system and a field test using GPS, the estimator interface was not used, and the flights were performed on the flight controller's pose which is the simulations ground truth pose.
+\end{itemize}
 
-\subsection{Estimator Interface}
+\subsection{Autonomy Interface}
+\subsubsection{Connector}\label{subsubsec:connector}
+
+The connector consists of two parts and constitutes the interface with the other software instances of the project:
+
+The MAVROS connector establishes the off board mode in the PX4 autopilot in order to control the parameters and waypoints through the autonomy directly, effectively replacing the flight controller's decision-making behavior. It performs the arming and disarming procedure and executes actuator checks among other tasks to enable a rotorcraft flight.
+
+The ROS connector receives health events about the system's status from the health guard node, the drone's current pose from the flight controller's state estimator and, crucial for this work, the detected landing sites from the LSD algorithm.
+
+\subsubsection{Landing Site Manager}
+
+In parallel to both the state machine and the connector, the autonomy contains another separate entity, the landing site manager. 
+
+It consistently processes the incoming landing sites from the LSD algorithm which were received by the ROS connector. During this processing, each landing site's distance to the drone's current position is calculated, and each landing site is assigned a heuristic value and ordered according to that value in the landing site buffer. This buffer is implemented as a min-heap. This allows the replacement and ordering of a new landing site with comparatively small overhead. 
+
+Upon reaching the landing state and executing the landing behavior, the landing site buffer is ordered in descending order and the best landing site is returned which can then be used as the next navigation target to finally land at.
+
+Prior to this work, the comparison metric used was simply the distance to the drone's current position resulting in the consistent choice of the closest landing site. In this thesis the landing site manager was expanded significantly regarding the heuristics considered and the general handling of detected landing sites. 
+
+Both the landing site manager and the connector are implemented as singleton nodes for facilitated use throughout the entire autonomy framework. This means that they are accessible in every action performed by any state of the state machine without the need of instantiation of a landing site manager object instance. This is achieved by removing the copy constructor of the class as well as the assignment operator and creating an instance acquisition function, which returns a pointer to the single static instantiation of the class.
 
 \subsection{Finite-State Machine}
 
-Before going into the state machine implementation of the autonomy framework, a finite-state machine's working principle is explained:
+Before going into the state machine implementation of the autonomy framework, the finite-state machine's working principle is explained:
 
 \subsubsection{Working Principle}
 
-A finite-state machine is a mathematical model of computation which allows the hierarchical definition of a system with a finite number of states. It is defined by a finite set of possible states with an initial state, the transition order in between these states, the events that trigger these transitions and the actions which are performed when the system is in a given state. It provides a very clearly structured implementation of the various states that a system can be in and is therefore a matching choice for the implementation of a rotorcraft mission. 
+A finite-state machine is a mathematical model of computation which allows the reactive implementation of a system with a finite number of states. It is defined by a finite set of possible states with an initial state, the transition rules in between these states, the events that trigger these transitions and the actions which are performed when the system is in a given state. It provides a very clearly structured implementation of the various states that a system can be in and is therefore a matching choice for the implementation of a rotorcraft mission.
+
+A state machine continuously executes a tick. An executed tick carries out the action associated with the state that the state machine currently resides in. Depending on the output of that action, a transition event is triggered, moving the state machine from one state to another. This way the decision flow is propagated throughout the state machine until the behavior is concluded. This conclusive state in turn also has a transition which allows the state machine to start over again.
 
 \subsubsection{The Finite-State Machine in the Autonomy Framework}
 
-In this setup, the autonomy framework itself acts like a finite state machine. At any given moment it is in a state and a tick is executed. During nominal conditions, this simply denotes a tick in the finite-state machine. In the unfortunate case of a health event however, the state machine handles the health event based on in what state the FMS currently is. For instance, if it arises during initiation, the state machine simply transitions to the termination state, aborting the flight. In contrast, if the FSM's current state is the mission state, the rotorcraft immediately returns to the home position to land.
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.17]{images/system_overview/state_machine.png}
+    \caption{State machine of the autonomy framework}
+    \label{fig:state_machine}
+\end{figure}
 
-In each state during a state machine tick the respective behavior node is executed. Most often this is a single action node. For more complicated procedures a behavior tree is used. This is the case for the takeoff state, the emergency state as well as the landing state. For this thesis the landing node indicated in bold in \cref{fig:autonomy} is the most crucial part of the state machine. This is where the adaptive landing decisions are made to choose an adequate landing zone and orchestrate safe traversal to that location before finally landing on the surface.
+The autonomy continuously executes a tick. During nominal conditions, this simply denotes a tick in the finite-state machine. In the unfortunate case of a health event however, the state machine handles the health event based on in what state the FMS currently is. For instance, if it arises during initiation, the state machine simply transitions to the termination state, aborting the flight. In contrast, if the FSM's current state is the mission state, the rotorcraft immediately returns to the home position to land.
+
+In each state during a state machine tick the respective behavior node is executed. Most often this is a single action node. For more complicated procedures a behavior tree is used. This is for instance the case for the landing state. For this thesis the landing node indicated in bold in \cref{fig:autonomy} is the most crucial part of the state machine. This is where the adaptive landing decisions are made to choose an adequate landing zone and orchestrate safe traversal to that location before finally landing on the surface.
 
 \subsection{Behavior Tree}\label{subsec:setup:behavior_tree}
 
-A behavior tree is tool for systematic hierarchical plan execution. It enables the creation of complex tasks which are comprised of various simple tasks without having to worry about the implementation of such a small modular task. In contrast to a state machine, the core of a behavior is a task as opposed to a state. This is a matching choice of framework for the creation of complex adaptive flight behaviors. Especially since a rotorcraft mission can be easily split into small modular maneuvers such as ascension, lateral motion and rotation.
+A behavior tree is a tool for systematic hierarchical plan execution. It enables the creation of complex tasks which are comprised of various simple tasks without having to worry about the implementation of such a small modular task. In that sense, it is similar to a finite-state machine.
+
+However, in contrast to a state machine, nodes in a behavior tree are always executed in a hierarchical order. A node in a behavior tree is in one of three states at all times: 
+
+\begin{itemize}
+    \item RUNNING
+    \item SUCCESS
+    \item FAILURE
+\end{itemize}
+
+Being restricted to three states doesn't implicitly speak for the reactivity of the system. The more transition possibilities an entity has, the more reactive the system containing the entity is. However, the hierarchical execution flow of the nodes makes behavior tree's more easily scalable than finite-state machines. This is because the implementation of many transitions in a state machine quickly increases the complexity of the system. Action nodes in a behavior tree on the other hand can be organized in higher level control flow nodes which allows scalability of the system without a quick increase of complexity.
+
+This is a matching choice of framework for the creation of complex modular flight behaviors. Especially since a rotorcraft mission can be easily split into small modular maneuvers such as ascension, lateral motion and rotation. Additionally, behavior trees allow anyone to draw up complex missions without the necessity of understanding the individual action node implementations in depth.
 
 \subsubsection{Working Principle}
 As the name suggests, a behavior tree can be visualized as a directed tree where the starting point of the tree is the root node. 
@@ -273,7 +318,7 @@ After the root node, three categories of tree nodes can follow:
 
 \subsubsection{Control Flow Nodes}
 
-The most imported control flow nodes which were used in this thesis are the following:
+The following control flow nodes are implemented:
 
 \begin{itemize}
     \item Fallback Node
@@ -281,7 +326,11 @@ The most imported control flow nodes which were used in this thesis are the foll
     Attempts to execute the first child node and if successful, it returns a success state. Else it continues to the next child node. If no child node was successful it returns the failure state. A boolean operator analogy for this would be the logical OR, stopping at the first successful entity.
     \item Sequence Node
     
-    Executes one child after another. It only returns the success state if all children nodes ran successfully. Otherwise, it returns false. Here an analogy would be the logical AND boolean operator.
+    Executes one child after another. It only returns the SUCCESS state if all child nodes ran successfully. Otherwise, it returns false. Here an analogy would be the logical AND boolean operator.
+
+    \item Parallel Node
+    
+    In this control flow node the child nodes are ticked in the hierarchical fashion as usual. However instead of waiting for the SUCCESS or FAILURE result of a given child node, its successor is already ticked. The parallel node returns SUCCESS if a predefined number of child nodes return SUCCESS or FAILURE in case a predefined number or all child nodes return FAILURE.
 \end{itemize}
 
 \subsubsection{Decorator Nodes}\label{subsubsec:decorator_nodes}

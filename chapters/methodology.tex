@@ -1,17 +1,23 @@
 \chapter{Methodology}
 \label{sec:methodology}
 
-The autonomy framework\citep{Autonomy} allows us to fly independent missions at cruise altitude of 100m+. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
+As the endeavor of this thesis was the merger and enhancement of various aspects of the LORNA project, the complexity lied rather in the understanding of the existing work and the interfaces thereof as opposed to the challenging methodology pursued in the novel contributions. Therefore, the implementation aspect of this work carries more weight than the theoretical decision-making associated with it.
 
-At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because the drone does not retain any hazard information due to the limitations of computational complexity present for Mars flights. Therefore it could be said that the drone flies blindly with regards to obstacles. In thesis I present a stereo camera implementation to remedy these shortcomings.
+The autonomy framework\citep{Autonomy} allows us to fly independent missions at cruise altitude of 100+ m. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
+
+At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because a local state estimator is by nature prone to accumulate an estimation error. In this thesis I present a stereo camera implementation to remedy these shortcomings.
+
+% This is because the drone does not retain any hazard information past the knowledge of detected landing sites and terrain knowledge from either HiRISE, Ingenuity or the rover which is implicitly used for the mission creation. Therefore, it could be said that the drone flies blindly with respect to obstacles. 
 
 \section{Stereo Camera}
 
 The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model and settings the parameters to equal the hardware results in the desired outcome.
 
-Processing this information is different than for the existing SFM node. A new depth generation node was put in place. 
+Processing this information is different from for the existing SFM node. Therefore, a new depth generation node was put in place. 
 
-Both images as well as the drone's base link pose are given to the node as input and processed. Using openCV's stereoSGBM algorithm, disparity images are created. These are then converted to point clouds using the stereo depth formula \ref{eq:depth_from_disp} and coordinate transforms. Lastly they output the point cloud in the world frame as well as the two camera poses used to create it.
+The two images and the drone's base link pose are given to the node as input and processed. Using OpenCV's StereoSGBM algorithm, disparity images are created. These are then converted to point clouds using the stereo depth formula and coordinate transforms from the camera to the world frame. Finally, the stereo camera depth nodes outputs the point cloud in the world frame as well as the two camera poses used to create it.
+
+As the stereo camera has a relatively small, fixed baseline. The usage domain is restricted to low altitudes. The residual part of a mission is still flown using SFM. To facilitate the switch between these two depth sources, the laser range finder sensor was used.
 
 \section{Autonomous Landing Procedure}
 
@@ -21,9 +27,12 @@ The method of the landing pipeline can be split into the following parts:
 
 \begin{itemize}
     \item Landing site detection output
+
     Prior to this work, LSD only published a landing site's location. To give the autonomy more information to make adequate decisions, LSD is changed to also yield additional characteristics which are used during the landing site segmentation process.
     \item Landing site interface of the autonomy
-    The autonomy framework is changed to correctly receive and handle incoming landing sites. The incoming candidates are ordered according to a novel landing site heuristic and updated upon being redetected.
+
+    The autonomy framework is changed to correctly receive and handle incoming landing sites. The incoming candidates are ordered according to a novel landing site heuristic and updated upon being re-detected.
     \item Autonomous landing behavior
+
     Using the newly expressive landing sites and their handling procedure, the adaptive landing instance is put in place using an existing behavior tree framework within the autonomy. Additional modular action nodes are created and previously existing ones are altered in order to achieve a precise and safe landing procedure.
 \end{itemize}
