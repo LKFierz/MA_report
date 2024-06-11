@@ -33,3 +33,5 @@ LandingSiteVerificationAction
 LandingSiteSearchAction
 GetNextPatternCenterWPAction
 Seco
+Pixhawk
+DEMs

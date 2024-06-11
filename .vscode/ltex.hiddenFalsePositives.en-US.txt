@@ -4,3 +4,5 @@
 {"rule":"AFFORD_VBG","sentence":"^\\QThe drone hovers above the landing site for a pre-determined duration in place and attempts to re-detect the chosen landing site.\\E$"}
 {"rule":"CLOSE_SCRUTINY","sentence":"^\\QThis is arguably as important as the verification of a previous landing site as it yields a good candidate in close proximity.\\E$"}
 {"rule":"AFFORD_VBG","sentence":"^\\QThe yellow points are landing attempts, where a chosen landing site was not verified and thus banned from further consideration.\\E$"}
+{"rule":"SENT_START_CONJUNCTIVE_LINKING_ADVERB_COMMA","sentence":"^\\QFurther tests showed however that there was an actual error in the Gazebo Garden source code.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QThanks to my friend and colleague Simone Nascivera, this bug could be fixed.\\E$"}
