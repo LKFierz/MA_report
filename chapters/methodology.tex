@@ -177,7 +177,6 @@ Looking at \cref{fig:gt_test_gt} and \cref{fig:gt_test_sfm}, one can see, that, 
 
 Therefore, the ground truth depth could be used for the testing of the autonomous landing pipeline without making a landing site verification step at low altitudes redundant.
 
-
 \section{Autonomous Landing Procedure}
 
 Having implemented a stereo camera as a low altitude alternative to SFM, and after ensuring a correct ground truth comparison, the main contribution of this work could be tackled: Bringing the visual landing site pipeline together with the autonomy framework in order to achieve reliable autonomous landing in unknown terrain.
@@ -200,15 +199,15 @@ The approach of the landing pipeline implementation can be split into the follow
 % TODO Write out LSD preparation aka to prepare for lanidng this and this...
 \section{Landing Site Handling}\label{subsubsec:LandingSiteHeuristic}
 
+In order to make high quality landing decisions in the autonomy framework one needs high quality information sent to the system by the landing site detection algorithm.
+
 \subsection{LSD Properties}\label{sec:LSproperties}
 
-With the low altitude depth alternative in place, the connection of the autonomy with the landing site detector could be tackled. 
-
-Before this work the output of the landing site detection algorithm was merely the location of a found landing site. However, as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Subsequently, it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
+Before this work the output of the landing site detection algorithm was merely the location of a found landing site. However, as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Thereafter, it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
 
 Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
 
-I decided on the following properties to be the LSD output:
+I decided on the following properties to be the content of the LSD output:
 
 \begin{itemize}
     \item Location
@@ -217,14 +216,21 @@ I decided on the following properties to be the LSD output:
     \item Size
     \item Obstacle Altitude
 \end{itemize}
+
 The final landing site detection output is a custom landing site ROS message containing the above-mentioned characteristics of the detected spot.
+
+Note: The supplied landing site from LSD already underwent a filtering procedure utilizing the roughness, slope, size and uncertainty properties. The value in reconsidering them again in the autonomy is two-fold.
+
+First, we have to remember that LSD does not use the current distance to the drone in its landing site segmentation. Therefore, in order for the autonomy to be able to weight the quality of a landing site (roughness, slope, size, uncertainty) against its convenience (distance to the drone) we need the complete set of properties at all times.
+
+Secondly, we might want a bigger handle in the weighting decision of these properties against each other. If small drifts are detected in the flight controller's actuator signals for instance, the biggest possible landing site might be of interest leading to high weighting of the size contribution in the autonomy.
 
 \textbf{Location}
 
 The location of the landing site in the world frame.
 \textbf{Roughness}
 
-The roughness value the exact value already used for the hazard segmentation step in the landing site detection. 
+The roughness value the exact value already used for the hazard segmentation step in the landing site detection. See \cref{subsubsec:setup:haz_seg} for an explanation of this property.
 
 \textbf{Uncertainty}
 
@@ -258,7 +264,7 @@ The final heuristic defining the quality of a landing site is in fact a square l
 \end{equation}
 
 \textbf{Current Distance to Drone - $L_{dist}$}
-Well likely the single most important characteristic of a landing site\footnote[1]{Each received landing site has already undergone a threshold filtering regarding slope and roughness.}. Each iteration the current distance to the drone's position is calculated for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100 m. In practice there were easily enough landing sites found while moving to allow landing sites to fall off when being farther away than 100 m.
+Well likely the single most important characteristic of a landing site\footnote[2]{Each received landing site has already undergone a threshold filtering regarding slope and roughness.}. Each iteration the current distance to the drone's position is calculated for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100 m. In practice there were easily enough landing sites found while moving to allow landing sites to fall off when being farther away than 100 m.
 
 \textbf{Roughness - $L_{rough}$}
 %TODO

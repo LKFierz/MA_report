@@ -46,9 +46,9 @@ Notably there are three important frames:
 Hereafter, the following notation is used:
 
 \begin{itemize}
-    \item $t_DC^W$: Transformation from Drone to Camera frame represented in the World frame
-    \item $R_DC$: Active Rotation from the Drone to the Camera frame
-    \item $r_DC^W$: Position vector from the drone to the camera represented in the World frame.
+    \item $t_{dc}^W$: Transformation from drone to camera, represented in the World frame
+    \item $R_{DC}$: Active Rotation from the Drone to the Camera frame
+    \item $r_{wp}^W$: Position vector from the world frame to the detected point, represented in the World frame.
 \end{itemize}
 
 One more thing to note in \cref{fig:drone_sim_setup} is that in Gazebo's camera convention, the optical axis of a camera points along the x-axis. Therefore, the base link pose was subscribed to and the pose was converted to the camera pose using the adequate transformation. Neither Gazebo's base link nor camera coordinate conventions are relevant as long as we correctly track the pose of a downwards facing camera.
@@ -111,12 +111,34 @@ From the created depth image, the pose and the camera parameters, the 3D locatio
 \label{fig:similar_triangles}
 \end{figure}
 
-% The formulas for the coordinates are shown in \cref{}
+The formulas for the point coordinates in the camera frame are shown in \cref{eq:pc_projection}.
 
 \begin{align}
-    y &= 
-    z &= z \quad \text{the depth value is already stored in the depth image and can be retained directly.}\\
+    \label{eq:pc_projection}
+    x_{cp}^C &= \text{depth} * \frac{\left(u - o_x\right)}{f_x}\\
+    y_{cp}^C &= \text{depth} * \frac{\left(v - o_y\right)}{f_y}\\
+    z_{cp}^C &= \text{depth} \quad \text{Depth value is the same}
 \end{align}
+
+Lastly, to get the point cloud in the world frame, the coordinate transform is applied:
+
+\begin{equation}
+    r_{wp}^W = r_{wc}^W + R_{WC} \cdot r_{cp}^C = r_{wd}^W + R_{WD} \cdot r_{dc}^D + R_{WC} \cdot r_{cp}^C
+    \label{eq:transform_CW}
+\end{equation}
+
+Where
+
+\begin{equation}
+    r_{cp}^C = \begin{pmatrix}
+        x_{cp}^C\\
+        y_{cp}^C\\
+        z_{cp}^C
+    \end{pmatrix}
+    \label{eq:camera_point_vector}
+\end{equation}
+
+% TODO: get the rviz point cloud created
 
 The final output of the node is a generated point cloud in the world frame together with two poses representing the camera locations of the generated point cloud.
 
