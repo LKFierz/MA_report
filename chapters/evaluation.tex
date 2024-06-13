@@ -2,6 +2,17 @@
 \label{chapter:evaluation}
 
 \section{A Performance Evaluation of the SFM-LSD Pipeline at 100 m Altitude}\label{sec:sfm_lsd_eval}
+\subsection{LSD Analysis}
+\subsection{SFM Insufficiencies}\label{subsec:sfm_insufficiencies}
+
+Though very well performing when initialized successfully at low to mid-altitudes, SFM often had issues during startup and when switching key frames selected for the stereo algorithm at high altitudes.
+
+SFM is part of the LORNA pipeline and proofed to be a valid option for the endeavor tackled by LORNA. Prior to this work however, it was never tested extensively, especially at high altitudes (100 m).
+
+During this work I detected the following issues with SFM, but the restricted time prevent me from resolving them.
+
+\subsubsection{Lack of Rotational Robustness}
+\subsubsection{Key Frame Updates at High Altitudes}
 \section{Experimental Setup}
 
 The pipeline was tested by repeatedly flying a mission with randomized initial conditions.

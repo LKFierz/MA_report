@@ -1,21 +1,29 @@
-\chapter{Methodology Overview}
+\chapter{Methodology}
 \label{sec:methodology}
 
 As the endeavor of this thesis was the merger and enhancement of various aspects of the LORNA project, the complexity lied rather in the understanding of the existing work and the interfaces thereof as opposed to the challenging methodology pursued in the novel contributions. Therefore, the implementation aspect of this work carries more weight than the theoretical decision-making associated with it.
 
 The autonomy framework\citep{Autonomy} allows us to fly independent missions at cruise altitude of 100+ m. The structure from motion approach captures 3D information during traversal as its adaptive baseline allows it to perceive high quality depth information also at such high altitudes. This information can be used by LSD in order to detect landing sites during mission. 
 
-At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because a local state estimator is by nature prone to accumulate an estimation error. In this thesis I present a stereo camera implementation to remedy these shortcomings.
+At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because a local state estimator is by nature prone to accumulate an estimation error and the same holds for the structure from motion approach. Our terrain knowledge can thus become void. 
+
+To overcome this issue, a range sensor can be used. As LiDAR might come to mind. However, a LiDAR sensor produces rather sparse point clouds unless a newer sensor like for instance Ouster's OS1-128 %TODO reference here
+sensor is used. In that case, there remains the weight issue with the sensor's 495g. As the drone is going to fly on Mar's very thin atmosphere, this isn't feasible. 
+
+%TODO: Other depth sensors?
+Staying with the project's theme of visual sensors, a stereo camera poses a solution as it offers in-place triangulation with a very low weight ($\tilde 10g$). Therefore, in this thesis I present a stereo camera range node implementation to remedy the shortcomings at low altitudes.
 
 % This is because the drone does not retain any hazard information past the knowledge of detected landing sites and terrain knowledge from either HiRISE, Ingenuity or the rover which is implicitly used for the mission creation. Therefore, it could be said that the drone flies blindly with respect to obstacles. 
 
 \section{Stereo Camera}
 
-The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model and settings the parameters to equal the hardware results in the desired outcome.
+The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model, and setting the parameters to equal the hardware, results in the desired outcome.
 
-Processing this information is different from for the existing SFM node. Therefore, a new depth generation node was put in place. 
+Processing this information is different from for the existing SFM algorithm. Therefore, a new depth generation node was put in place. 
 
-The two images and the drone's base link pose are given to the node as input and processed. Using OpenCV's StereoSGBM algorithm, disparity images are created. These are then converted to point clouds using the stereo depth formula and coordinate transforms from the camera to the world frame. Finally, the stereo camera depth nodes outputs the point cloud in the world frame as well as the two camera poses used to create it.
+The input to the stereo camera depth node are the two camera images and the drone's base link pose.
+
+Using OpenCV's StereoSGBM algorithm, disparity images are created. These are then converted to point clouds using the stereo depth formula and coordinate transforms from the camera to the world frame. Finally, the stereo camera depth node outputs the point cloud in the world frame as well as the two camera poses used to create it.
 
 As the stereo camera has a relatively small, fixed baseline. The usage domain is restricted to low altitudes. The residual part of a mission is still flown using SFM. To facilitate the switch between these two depth sources, the laser range finder sensor was used.
 
@@ -54,7 +62,7 @@ All in all the stereo camera setup allows us to perceive a landing site at cours
 
 Looking in depth at the stereo alternative of depth generation, we can first analyze the theoretical threshold of this system.
 
-\section{Theoretical Analysis}
+\subsection{Theoretical Analysis}
 
 When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lens. 
 
@@ -107,7 +115,12 @@ This limitation has to be kept in mind. However, it is neither too surprising no
 
 \section{Ground Truth Depth}
 
-For evaluation purposes as well as proof of concept aspirations, a ground truth is required. The simulation already supplied the ground truth pose of the drone's base link through the ROS bridges. When applying the static camera transform to it, this yielded the ground truth camera pose. Using Gazebo's depth camera sensor\footnote[1]{As there was a bug in Gazebo's source code, the depth camera couldn't be used out of the box. More on this in \cref{chapter:appendix:gz_depth_camera}.}, a ground truth point cloud could be created.
+For evaluation purposes as well as proof of concept aspirations, a ground truth is required. 
+
+Additionally, GT was important, because at the time of this work the structure from motion node showed frequent signs of unreliability. See \cref{subsec:sfm_insufficiencies} for the evaluation thereof.
+
+\subsection{Ground Truth Implementation}
+The simulation already supplied the ground truth pose of the drone's base link through the ROS bridges. When applying the static camera transform to it, this yielded the ground truth camera pose. Using Gazebo's depth camera sensor\footnote[1]{As there was a bug in Gazebo's source code, the depth camera couldn't be used out of the box. More on this in \cref{chapter:appendix:gz_depth_camera}.}, a ground truth point cloud could be created.
 
 The depth camera creates the image using traced rays which fill a pixel with the center most range value that a ray detected.
 
@@ -146,7 +159,7 @@ On a flat textured plane, three cylinders of different sizes were placed. On eac
 \centering
 \includegraphics[scale=0.14]{images/methodology/GT.png}
 \caption{Ground truth result of the GT test}
-\label{fig:gt_test_gt}
+\label{fig:gt_test_gt} %TODO replace test images
 \end{figure}
 
 \begin{figure}[ht]
@@ -163,14 +176,15 @@ Therefore, the ground truth depth could be used for the testing of the autonomou
 
 \section{Autonomous Landing Procedure}
 
-Having implemented a stereo camera as a low altitude alternative to SFM and after ensuring a correct ground truth comparison, the main contribution of this work could be tackled: Bringing the visual landing site pipeline together with the autonomy framework in order to achieve reliable autonomous landing in unknown terrain.
+Having implemented a stereo camera as a low altitude alternative to SFM, and after ensuring a correct ground truth comparison, the main contribution of this work could be tackled: Bringing the visual landing site pipeline together with the autonomy framework in order to achieve reliable autonomous landing in unknown terrain.
 
+% In the methodology I want to write about the decision making behind my autonomous landing approach. How can I write about 
 The approach of the landing pipeline implementation can be split into the following parts:
 
 \begin{itemize}
     \item Landing site detection output
 
-    Prior to this work, LSD only published one single landing site's location. To give the autonomy more information to make adequate decisions and to avoid the stagnation on a single overconfident landing site, LSD is changed to also first, publish three landing sites each iteration and secondly, yield additional characteristics with each output landing site.
+    Prior to this work, LSD only published one single landing site's location. To give the autonomy more information to make adequate decisions and to avoid the stagnation on a single overconfident landing site, LSD was changed to also first, publish three landing sites each iteration and secondly, yield additional characteristics with each output landing site.
     \item Landing site interface of the autonomy
 
     The autonomy framework is changed to correctly receive and handle incoming landing sites. The incoming candidates are ordered according to a novel landing site heuristic and updated upon being re-detected.
