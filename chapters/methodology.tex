@@ -19,13 +19,18 @@ Staying with the project's theme of visual sensors, a stereo camera poses a solu
 
 The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model, and setting the parameters to equal the hardware, results in the desired outcome.
 
-Processing this information is different from for the existing SFM algorithm. Therefore, a new depth generation node was put in place. 
+The input to the stereo camera depth node are the two camera images and the drone's base link pose. Processing this information is different from for the existing SFM algorithm. Therefore, a new depth generation node was put in place. 
 
-The input to the stereo camera depth node are the two camera images and the drone's base link pose.
+As mentioned in \cref{sec:rel_stereo}, state-of-the-art deep learning based stereo depth methods have considerably higher computational overhead. Due to the embedded CPU's computation limitations, this restricts us to using classical algorithms such as OpenCV's implementations of Heiko Hirschmüller's approach (\citep{Stereo}).
 
-Using OpenCV's StereoSGBM algorithm, disparity images are created. These are then converted to point clouds using the stereo depth formula and coordinate transforms from the camera to the world frame. Finally, the stereo camera depth node outputs the point cloud in the world frame as well as the two camera poses used to create it.
+The initial goal of the stereo camera implementation of this work was to show proof of concept for this approach of depth detection without lateral motion. Due to personal experience with the OpenCV library, the initial choice of stereo depth method was OpenCV's StereoSGBM algorithm. This algorithm is introduced in \cref{subsec:disparity_creation}.
 
-As the stereo camera has a relatively small, fixed baseline. The usage domain is restricted to low altitudes. The residual part of a mission is still flown using SFM. To facilitate the switch between these two depth sources, the laser range finder sensor was used.
+JPL has its own visual library called JPLV containing a stereo matching method which was also considered throughout the time of this thesis. However, as there was no specific reason to switch away from the working StereoSGBM implementation, the continuation thereof was pursued.
+
+Additionally, OpenCV's StereoBM variation was considered which is in general faster but less accurate than StereoSGBM. An analysis thereof is shown in \cref{subsec:bmvssgbm}.
+
+
+
 
 \subsection{Stereo Camera Advantages}
 
@@ -62,13 +67,13 @@ All in all the stereo camera setup allows us to perceive a landing site at cours
 
 Looking in depth at the stereo alternative of depth generation, we can first analyze the theoretical threshold of this system.
 
-\subsection{Theoretical Analysis}
+\subsection{Theoretical Analysis}\label{subsec:theoretical_analysis}
 
 When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lens. 
 
 Assuming a perfectly calibrated and rectified camera there is still always an inaccuracy in the depth estimation arising from the disparity error.
 
-From a given disparity estimate the depth error is derived as follows:
+The depth error is estimated using the following derivation. The formula to derive a depth value from a calculated disparity is:
 
 \begin{equation}\label{eq:depth_from_disp}
     z = \frac{f \cdot b}{d}
@@ -111,7 +116,6 @@ With these properties and estimating a subpixel-precision disparity error of 0.5
 Let's assume we allow a maximum depth error of 10 cm. Considering this constraint we can fly at a maximum altitude of about 3 m as indicated in \cref{fig:stereo_limit}.
 
 This limitation has to be kept in mind. However, it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
-
 
 \section{Ground Truth Depth}
 

@@ -6,3 +6,4 @@
 {"rule":"AFFORD_VBG","sentence":"^\\QThe yellow points are landing attempts, where a chosen landing site was not verified and thus banned from further consideration.\\E$"}
 {"rule":"SENT_START_CONJUNCTIVE_LINKING_ADVERB_COMMA","sentence":"^\\QFurther tests showed however that there was an actual error in the Gazebo Garden source code.\\E$"}
 {"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QThanks to my friend and colleague Simone Nascivera, this bug could be fixed.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QDue to the embedded CPU's computation limitations, this restricts us to using conventional methods such as OpenCV's StereoSGBM variation of Heiko Hirschmüller's The stereo depth implementation was done using OpenCV's StereoSGBM algorithm.\\E$"}

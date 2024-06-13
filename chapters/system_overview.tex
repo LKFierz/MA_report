@@ -1,14 +1,14 @@
 \chapter{System Overview}
 
 \cref{fig:lorna_setup} shows the high level architecture of the LORNA concept. 
-% TODO: write about QGroundControl
+
 The xVIO state estimator uses the camera, IMU and laser range finder sensor onboard the vehicle in order to estimate the current state of the rotorcraft at any given time. Using map based localization (MBL) on HiRISE satellite maps allows for global localization. These poses are given to the flight controller and the output from that internal estimator is fed to the autonomy as well as the landing site detection nodes.
 
 As mentioned above, the rotorcraft is flown using a PX4 flight controller. It communicates with the autonomy framework using the MAVROS ROS wrapper for the MAVLink rotorcraft protocol. This connection is used for the transmission of waypoint information and the setting of parameters.
 
 The sensor images and their respective associated drone pose are given the landing site pipeline. In a first step, the 3D terrain is reconstructed using a structure from motion node. The reconstructed terrain is then given to the landing site detection algorithm(LSD) which first aggregates the information in a robot-centric multi resolution depth map and then segments valid landing sites on that. Detected landing sites are given to the autonomy to make the required adaptive landing decisions.
 
-
+Not indicated in the graphic, as it is only used in a preparation step for the mission planning, is the QGroundControl ground station. In the developmental stages of the landing site pipeline, this serves as the mission planning and execution user interface. When using the autonomy however, it is not used. At the time of this work, the missions flown by the autonomy are prepared using a mission planner node introduced in \cref{subsec:sup_nodes}. This node uses exported QGC plans to create the missions for the autonomy framework. Therefore, it is used more so as a preparatory tool for the autonomy as opposed to a central part of the pipeline.
 
 \begin{figure}[ht]
     \centering
@@ -218,7 +218,7 @@ A visualization of the setup is shown in \cref{fig:autonomy}.
 
 As shown in \cref{fig:autonomy}, the core of the autonomy framework is a finite-state machine that reactively orchestrates task execution, ensuring that the individual actions are carried out in an organized and structured manner. Alongside the state machine there are two separate entities. A connector and the landing site manager. Lastly, a blackboard module is used to transfer information between states of the state machine.
 
-\subsection{Support Nodes}
+\subsection{Support Nodes}\label{subsec:sup_nodes}
 
 The autonomy framework is aided by three support nodes. These are shown at the bottom of \cref{fig:autonomy}:
 

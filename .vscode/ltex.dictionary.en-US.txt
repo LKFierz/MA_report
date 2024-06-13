@@ -37,3 +37,7 @@ Pixhawk
 DEMs
 
 Pierno
+StereoBm
+StereoBM
+Heiko
+Hirschmüller

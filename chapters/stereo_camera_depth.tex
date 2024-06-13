@@ -1,29 +1,146 @@
 \chapter{Stereo Camera Depth Node Implementation}
 \label{chapter:stereo_camera_depth}
 
-First and foremost, to emphasize the advantages of range information given by a stereo camera the following comparison is performed:
-
 \section{Implementation}
 
-Like Structure from Motion, the stereo depth instance is a ROS node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, camera images and a ground truth camera pose from the simulation were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed baseline.
+Like Structure from Motion, the stereo depth instance is a ROS node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, camera images and a ground truth camera pose from the simulation were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed hardware baseline.
 
-The stereo depth implementation was done using OpenCV's StereoSGBM algorithm. As stereo depth generation is a widely known topic I won't go into the details here.
+\subsection{Stereo Setup Overview}
 
-The final output of the node is a generated point cloud in the world frame together with two poses representing the camera locations of the generated point cloud.
-
-\subsection{Transform Overview}
-
-A critical part of navigation is always the consistency of the coordinate systems in which quantities are represented. Hereafter is a display of the present coordinate systems in the stereo camera setup.
-
-\subsection{Landing Site Detection without Lateral Motion}
-
-Taking off vertically with the drone in the simulation, the first landing site without lateral motion was found.
+\cref{fig:drone_sim_setup} shows the drone setup in the simulation with the stereo camera. The stereo camera pair is indicated with the opaque boxes. The significant distance to the drone's core is necessary to avoid capturing the landing feet in the image due to the simulation model's discrepancy to the physical drone. As presented in \cref{ch:drone} the drone hardware has landing skids that are spread significantly farther apart than for the simulated model. That is why, when using the stereo camera mounted at the core of the physical drone, the mainstays are not visible in the images detected. In the simulation they would be detected unless the stereo cameras are positioned further from the rotorcraft's center. 
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.32]{images/preparation/stereo/drone_with_stereo_cam.png}
     \caption{Stereo camera on drone indicated by opaque boxes}
+    \label{fig:drone_sim_setup}
 \end{figure}
+
+\subsubsection{Frames}
+
+A critical part of navigation is always the consistency of the coordinate systems in which quantities are represented. Hereafter in \cref{fig:frames} the present coordinate systems of the stereo camera setup are displayed. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.2]{images/stereo_camera_depth/frames.png}
+\caption{Coordinate frames in stereo camera depth setup}
+\label{fig:frames}
+\end{figure}
+
+Notably there are three important frames:
+
+\begin{itemize}
+    \item The reference world frame $W$
+
+    This is the global frame relative to which the drone flies and the point clouds are created.
+
+    \item The drone (base link frame) $D$
+    
+    This is the pose of the moving drone throughout a mission. It is constantly published by the simulation.
+
+    \item The camera pose $C$
+    
+    The camera pose is the frame in which the point cloud is created and aggregated. The relative pose of the cameras are set in the simulated drone's setup file. This transformation is static and is applied to each incoming pose message directly.
+\end{itemize}
+
+Hereafter, the following notation is used:
+
+\begin{itemize}
+    \item $t_DC^W$: Transformation from Drone to Camera frame represented in the World frame
+    \item $R_DC$: Active Rotation from the Drone to the Camera frame
+    \item $r_DC^W$: Position vector from the drone to the camera represented in the World frame.
+\end{itemize}
+
+One more thing to note in \cref{fig:drone_sim_setup} is that in Gazebo's camera convention, the optical axis of a camera points along the x-axis. Therefore, the base link pose was subscribed to and the pose was converted to the camera pose using the adequate transformation. Neither Gazebo's base link nor camera coordinate conventions are relevant as long as we correctly track the pose of a downwards facing camera.
+
+\subsection{Input Handling}
+The input of the images as well as the base link pose are received using ROS subscribers. Despite publishing these simulated Gazebo topics at equal rates however, they did not arrive simultaneously. Note that this would be resolved when working with the actual xVIO state estimator as it uses the tracking camera's image and supplies further nodes with that same image as well as the pose with synchronized timestamps.
+
+The pose is only required for the transfer of the created points from the camera frame to the world frame. Therefore, the two input images were processed into a depth image in a single step and only after were all three inputs used in order to create the point cloud. 
+
+\cref{fig:input_synch} schematically shows how the stereo camera depth node handled this shortcoming of asynchronous sensor messages by manually picking the pose which temporally closest corresponds to the image's timestamp. This was possible as the image processing step dominates the computation time of the input handling and the pose can thus be continuously updated in the meantime to best fit the images.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{images/stereo_camera_depth/input_synchronization.png}
+\caption{Schematic visualization of input synchronization used in the stereo depth node}
+\label{fig:input_synch}
+\end{figure}
+
+\subsection{Disparity Creation}\label{subsec:disparity_creation}
+
+The chosen StereoSGBM (Semi-Global Block Matching) algorithm creates a disparity map from two horizontally aligned images using the following process:
+
+% TODO: explain stereo algorithm
+\begin{itemize}
+    \item 
+\end{itemize}
+
+% TODO: show disparity image output and note the cutoff which comes from OpenCV's stereo algorithm
+
+\subsubsection{StereoSGBM vs StereoBM}\label{subsec:bmvssgbm}
+
+Apart from the StereoSGBM implementation, OpenCV provides the StereoBM algorithm which in general is faster but less precise.
+
+Implementing and comparing the two algorithms the following results were seen:
+
+% TODO: Image of SteroSGBM vs StereoBM
+
+% TODO: replace analysis hereafter
+As can be seen in the above figure, StereoBM sometimes showed unsatisfactory point clouds. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital component of the pipeline, and thus, the quality must not be compromised. Therefore, StereoSGBM was retained as the algorithm of choice for the stereo depth creation.
+
+\subsection{Point Cloud Creation}
+
+Having created a disparity image using the approach laid out in \cref{subsec:disparity_creation}, the disparity pixels are first converted to the depth values using the classic disparity depth relation \ref{eq:depth_from_disp} shown in \cref{subsec:theoretical_analysis}.
+
+% TODO: show created depth image
+
+From the created depth image, the pose and the camera parameters, the 3D locations of each detected point can be derived. This is done by simply tracing the projection line of the detected point as indicated in \cref{fig:line_projection} and using the similar triangles as shown in \cref{fig:similar_triangles}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.35]{images/stereo_camera_depth/projection.png}
+\caption{Schematic of the line projection procedure to derive the 3D location of detected points}
+\label{fig:line_projection}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.35]{images/stereo_camera_depth/similar_triangles.png}
+\caption{Schematic of the line projection procedure to derive the 3D location of detected points}
+\label{fig:similar_triangles}
+\end{figure}
+
+% The formulas for the coordinates are shown in \cref{}
+
+\begin{align}
+    y &= 
+    z &= z \quad \text{the depth value is already stored in the depth image and can be retained directly.}\\
+\end{align}
+
+The final output of the node is a generated point cloud in the world frame together with two poses representing the camera locations of the generated point cloud.
+
+
+\subsection{Switching}
+
+In order to achieve the final desired perception mechanism of flying laterally with SFM and using a stereo camera depth node at low altitudes, one needs to switch between the two alternatives.
+
+The obvious decision to use in the switching mechanism is the drone's current altitude above ground. This could be achieved by analyzing the generated point cloud at a given iteration to determine the median altitude which indicates the altitude above ground. This however is avoidable computational overhead.
+
+As mentioned in \cref{sec:state_estimator} the drone has a laser range finder on board. This allows us to get an estimate of the altitude above ground at any given moment without the need for image processing.
+
+Therefore, the switching is performed by using a separate ROS subscriber which continuously checks the LRF's measurement and activates or deactivates the SFM node and stereo node respectively.
+
+\clearpage %HERE
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.17]{images/preparation/stereo/switching.png}
+    \caption{Laser Ranger Finder Based Switch between Depth Sources}
+\end{figure}
+
+\subsection{Landing Site Detection without Lateral Motion}
+
+Taking off vertically with the drone in the simulation, the first landing site without lateral motion was found.
 
 \begin{figure}
     \centering
@@ -42,23 +159,6 @@ Taking off vertically with the drone in the simulation, the first landing site w
     \centering
     \includegraphics[scale=0.25]{images/preparation/stereo/lsd_ascent.png}
     \caption{LSD Debug output displaying LORNA's first detected landing site during vertical motion}
-\end{figure}
-
-\subsection{Switching}
-
-In order to achieve the final desired perception mechanism of flying laterally with SFM and using a stereo camera depth node at low altitudes, one needs to switch between the two alternatives.
-
-The obvious flag to use in the switching mechanism is the current altitude above ground. This could be achieved by analyzing the generated point cloud at a given iteration to determine the median altitude which indicates the altitude above ground. This however is avoidable computational overhead.
-
-As mentioned in \cref{sec:state_estimator} the drone has a laser range finder on board. This allows us to get an estimate of the altitude above ground at any given moment without the need for image processing.
-
-Therefore, the switching is performed by using a separate ROS subscriber which continuously checks the LRF's measurement and activates or deactivates the SFM node and stereo node respectively.
-
-\clearpage %HERE
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.17]{images/preparation/stereo/switching.png}
-    \caption{Laser Ranger Finder Based Switch between Depth Sources}
 \end{figure}
 
 \section{Qualitative Practical Analysis}
@@ -89,6 +189,10 @@ Once implemented the landing site detection instance could be supplied by the st
 \end{figure}
 
 When comparing the result to the ground truth LSD output it can be seen that LSD creates a very accurate DEM from the stereo camera depth input. The landing sites detected are reasonable when compared to the terrain reference. 
+
+As the stereo camera has a relatively small, fixed baseline. The usage domain is restricted to low altitudes. The residual part of a mission is still flown using SFM. 
+
+
 
 
 
