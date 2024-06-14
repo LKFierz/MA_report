@@ -1,136 +1,302 @@
 \chapter{Autonomous Landing Procedure}\label{chapter:autonomous_landing_procedure}
 
-This implementation can be split into the following parts:
-\begin{itemize}
-    \item Landing site heuristic
+The implementation of the autonomous landing procedure consisted of two parts. First, the establishment of a sound interface between the autonomy and LSD, ensuring the autonomy's supply of quality information from LSD and the adequate processing thereof. 
 
-    \item Conceptual procedure
-    
-    \item Behavior tree implementation
+Secondly, the adaptive landing behavior itself was implemented.
+
+\section{LSD - Autonomy Interface}\label{subsubsec:lsd_autonomy_interface}
+
+In order to make high quality landing decisions in the autonomy framework one needs high quality information sent to the system by the landing site detection algorithm.
+
+\subsection{LSD Properties}\label{sec:LSproperties}
+
+Before this work the output of the landing site detection algorithm was merely the location of a found landing site. However, as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Thereafter, it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
+
+Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
+
+I decided on the following properties to be the content of the LSD output:
+
+\begin{itemize}
+    \item Location
+
+    The location of the landing site in the world frame.
+    \item Uncertainty
+
+    The uncertainty value is also a product of the landing site detection algorithm. It denotes the averaged uncertainty across the area around a given landing site. 
+    \item Roughness
+
+    The roughness value the exact value already used for the hazard segmentation step in the landing site detection. See \cref{subsubsec:setup:haz_seg} for an explanation of this property.
+    \item Size
+
+    To determine the size of a landing site, the landing site detection algorithm performs a distance transform on the created landing site map in order to find the closest non-landing site for any found landing site. This returns the radius of the largest valid landing circle around a landing site. Calculating the physical value, the metric radius is returned as the size of a landing site.
+    \item Obstacle Altitude
+
+    The obstacle altitude was newly introduced in this work. It defines the current highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this can be read in \cref{subsec:actn_def}.
 \end{itemize}
+
+The final landing site detection output is a custom landing site ROS message containing the above-mentioned characteristics of the detected spot. For more detailed explanations of these properties see \cref{subsubsec:setup:aggregation} and \cref{subsubsec:setup:haz_seg}.
+
+Note: The supplied landing site from LSD already underwent a filtering procedure utilizing the roughness, slope, size and uncertainty properties. The value in reconsidering them again in the autonomy is two-fold.
+
+First, we have to remember that LSD does not use the current distance to the drone in its landing site segmentation. Therefore, in order for the autonomy to be able to weight the quality of a landing site (roughness, slope, size, uncertainty) against its convenience (distance to the drone) we need the complete set of properties at all times.
+
+Secondly, a bigger handle in the weighting decision of these properties against each other is desirable. For instance, as mentioned in \citet{LSD2}, the uncertainty values rise significantly in monotonous areas. Thus, a reweighing of the properties is required for optimal performance.
+
+\subsection{Landing Site Heuristic}\label{subsec:heuristics}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.2]{images/autonomous_landing/new_heuristics.png}
+    \caption{Schematic of new properties}
+    \label{fig:new_properties}
+    \end{figure}
+
+The autonomy processes the in \cref{sec:LSproperties} listed values in order to arrive at the in \cref{fig:new_properties} shown properties:
+
+\begin{itemize}
+    \item Current Distance to Drone $L_{dist}$
+
+    Well likely the single most important characteristic of a landing site\footnote[2]{Each received landing site has already undergone a threshold filtering regarding slope and roughness.}. Each iteration the current distance to the drone's position is calculated for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100 m. In practice there were easily enough landing sites found while moving to allow landing sites to fall off when being farther away than 100 m.
+    \item Roughness $L_{rough}$
+
+    The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
+    \item Uncertainty $L_{var}$
+
+    The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
+    \item Size $L_{size}$
+
+    Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However, unlike the two preceding properties it is not normalized but simply denotes the metric radius of the largest circle of valid landing area that can be fit around a given landing site. This is achieved in LSD by performing a distance transform on the created landing site image.
+
+    In order to normalize this value the maximum landing site size is retained and each landing site's size is divided by it in order to achieve normalized size information.
+
+    Also, as can be seen in \cref{eq:loss_fct}, the size contribution enters the loss function with a negative sign. This is due to the fact that compared to all other characteristics, the size defines a property that we would like to maximize.
+    \item Verification Altitude $L_{verAlt}$
+
+    A site's verification altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. 
+
+    The verification altitude is a useful property because of numerous reasons.
+    \begin{itemize}
+        \item Further Indication of Certainty
+
+        First, similar to the uncertainty metric the verification altitude indicates how certain we can be about a detected landing site as spots detected at lower flight altitudes are more likely correct due to the reduced depth error. Even though it might seem overlapping with the uncertainty property in this regard, these two characteristics are quite complementary as the uncertainty takes OMG convergence and camera specifics into consideration while the verification altitude is a purely location based metric.
+        \item Landing Site Property Updates
+
+        As the verification altitude yields a simple and good estimation of the trustworthiness of an incoming landing site, it can be used as a flag to know, when a landing site's properties should be updated. When a landing site is re-detected with a verification altitude lower than the previously stored one, the algorithm trusts it more and alters the previously stored properties to the new ones received.
+        \item Verification
+
+        Continuously updating the verification altitude upon re-detection allows us to determine the lowest altitude, at which a landing site was re-detected. This information can be used to verify that a given site was considered a valid landing spot even at low altitudes. 
+    \end{itemize}
+\end{itemize}
+
+The final heuristic defining the quality of a landing site is in fact a square loss function:
+
+\begin{equation}
+    L_{LS} = w_{dist}L_{dist} + w_{rough}L_{rough} + w_{var}L_{var} + w_{size}L_{size} + w_{verAlt}L_{verAlt}
+    \label{eq:loss_fct}
+\end{equation}
+
+
+\subsection{Landing Site Manager}
+
+Prior to this thesis, the landing site manager received artificially generated landing sites from a dummy landing site node. In this work the LSM was connected to the actual landing site detection output. See \cref{subsubsec:LSM} for an introduction of the landing site manager.
+
+With the new landing site properties introduced in \cref{subsec:heuristics} the metric according to which a landing site is evaluated is no longer a maximizing heuristic but a loss function to be minimized. Therefore, the simple switch of a min-heap to a max-heap was done to efficiently consistently switch the worst landing site and order the incoming one.
+
+Apart from the new heuristics and the handling thereof, the following important new concepts were introduced for the landing site manager:
+
+\subsubsection{Re-Detection}\label{subsubsec:redetection}
+
+In the LSM's state before this thesis, each landing site was considered individually and processed. The worst landing site according to the heuristic was filtered out, and the new landing site was put in its place and then ordered into the min heap.
+
+Re-detection defines the mechanic of assessing the proximity of an incoming landing site to the already considered landing sites in the buffer. If an incoming landing site is close enough to a previously detected site, this is considered a re-detection. In that case, the new landing site is not entered into the buffer but instead, the previously detected landing site has its properties updated.
+
+However, this property update is only performed, when the incoming landing site's was detected at a lower flight altitude. Expressed in specific terms this means, that the landing site is only updated if the incoming landing site's verification altitude is lower than the previously detected one. This is because, more trust is given to the landing sites detected at a closer distance. 
+
+The benefit of the update of the characteristics lies in the refinement of the site's information and therefore the retention of a higher quality landing site candidate.
+
+The schematic re-detection procedure is shown in \cref{fig:ls_redetection}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.16]{images/autonomous_landing/re-detection.png}
+\caption{LS re-detection: When the proximity check is successful, the incoming landing site updates an existing landing site instead of entering the buffer itself.}
+\label{fig:ls_redetection}
+\end{figure}
+
+The new heuristics are indicated with the colored squares according to their introduction in \cref{fig:new_properties}. Note that the obstacle altitude property is part of the LSD output but as it is not part of the loss function, it is not considered in the LSM's ordering. Secondly, the verification altitude like the distance to the drone are derived and attached in the ROS connector.
+
+\subsubsection{Selection}
+
+In the already existing autonomy framework, the landing site handling was very similar. Landing sites were ordered, and upon entering the landing state, the best one is shared with the navigation nodes through the blackboard variable interface. The selection happened therefore only in the signaling of the landing site manager to the other nodes which landing site to navigate towards.
+
+The landing site manager was changed in this regard to actively choose a landing site and update it consistently. This way, a handle to the current candidate exists. This handle is used for numerous benefits including consistently updating the landing site upon receiving new information, verifying that exact landing site and banning it in case of a verification failure. 
+
+\subsubsection{Verification}\label{subsubsec:verification}
+
+As explained in \cref{subsubsec:redetection}, when a landing site is re-detected, all properties are updated if and only if the verification altitude is lower than previously perceived. This results in a landing site always retaining the lowest altitude at which it was detected.
+
+This promotes the choice of a landing site detected at low altitudes as mentioned in \cref{subsec:heuristics}. What's more, we can use this as a verification tool.
+
+When pursuing a landing site which was detected at 100 m altitude, we need to validate it at a low altitude before committing to it and landing. We can do so safely as, yes, the initial landing site estimate from 100 m altitude might not be a good choice, however as can be seen in \cref{eq:SFM_depth_error}, given an approximate baseline of 15 m at 100 m altitude with a focal length of 256 and an assumed subpixel disparity error of 0.5, the structure from motion algorithm yields depth measurements with an approximate depth error of 1.3 m. Therefore, when verifying a landing site at about 2.5 m altitude, the drone has sufficient buffer to potential terrain.
+
+Thus, the verification consists of the low altitude hovering above a landing site, consistently scanning the terrain using the stereo camera which constantly sends landing sites to the autonomy. After a verification timeout duration is reached, the verification altitude of the chosen landing site is compared to the hover altitude and if they are within a small error threshold of each other, the site is considered verified and landing is initiated.
+
+If the verification fails, the chosen landing site has to be banned. This includes not only the removal of the landing site from the buffer, as it might be re-detected in the future. Instead, the landing site has to be entered into a ban list against which new landing sites are compared and if a re-detection of an incoming landing site with a banned one is triggered, the incoming landing site is ignored. 
+
+The reason for this mechanism lies in the exclusion of the possibility of repeatedly detecting and pursuing promising false candidate.
+
+The final procedure is shown below in \cref{fig:lsm_complete}. A received landing site is checked regarding its proximity to the selected landing site, the banned landing sites and the current landing sites in the buffer. If it is close enough to one of these sites, it is discarded in the case of the ban list and otherwise used for re-detection. If it's not the case, the landing site is entered into the LS buffer, as shown in \cref{fig:lsm_ls_processing}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.16]{images/autonomous_landing/lsm_complete.png}
+\caption{Complete LSM landing site handling}
+\label{fig:lsm_complete}
+\end{figure}
 
 \section{Conceptual Behavior}
 
-Bringing everything together and emphasizing landing aspects of an autonomous flight perspective, we arrive at the following procedure:
+To understand the landing behavior, the mission as a whole has to be considered.
 
-\subsection{Takeoff}
+\subsection{General Mission}
 
-The necessary checks and initialization are performed. This includes the created mission waypoint plan, the ROS, as well as the MAVROS connection setup with the initial setting of MAVROS parameters.
+Looking at a mission performed by the autonomy framework at a high level and laying emphasis on the landing pipeline, the procedure looks like this:
 
-Then the drone takes off vertically until it reaches the first waypoint's target altitude.
+\begin{itemize}
+    \item Preparation
+    
+        \begin{itemize}
+            \item Beforehand, a mission is created manually by exporting a QGC plan and converting it to the format readable by the autonomy.
+            \item The configuration parameters are set to the adequate values for the flight at hand.
+            \item The autonomy is started.
+            \item The necessary connectors with the ROS nodes, the flight controller and further auxiliary nodes are initialized.
+            \item An actuator check is performed.
+            \item Finally, the final starting signal is awaited.
+        \end{itemize}
+        
 
-During this phase the stereo camera feeds depth images into LSD until the laser range finder switches to SFM which results in a stop of depth supply as SFM does not detect depth during vertical motion.
+    \item Takeoff
+    
+    The drone takes off vertically until the desired course altitude of the first entered waypoint is reached. During this vertical flight stereo starts off and detects point clouds which are given to LSD for the map aggregation and landing site segmentation. After reaching the switching threshold mentioned in \cref{subsec:switching}, stereo is deactivated and SFM starts up. However, as the rotorcraft is still in mere vertical motion, no point clouds are created by SFM.
 
-\subsection{Prerequisite - Landing Site Handling}
+    \item Mission
 
-Landing sites are constantly received by the autonomy's ROS connector which constitutes the ROS interface with the landing site detector. The sites have to be processed in a separate thread. This is handled by a landing site manager (LSM) singleton class.
+    Upon reaching the first waypoint's altitude, the drone starts lateral motion. This is where SFM starts supplying LSD with the first non-trivial landing sites which are transferred to and processed by the autonomy. The mission may have numerous waypoints and upon reaching the last one, the landing sequence is initiated.
 
-\subsubsection{Landing Site Manager}
+    \item Landing
+    
+    The landing behavior uses the perceived landing sites in order to reactively and safely determine, validate and approach a landing site. When the landing decisions have concluded, the drone lands aka it descends until ground contact is established. The decision-making is explained in detail in \cref{subsec:landing_behavior}. 
 
-The incoming landing sites are ranked according to a loss function(\ref{subsubsec:LandingSiteHeuristic}) and stored in a max-heap buffer in order to easily switch out the worst landing site for a new one at any given time.
+    \item Termination
 
-\subsection{Transition into Landing}
+    Upon having successfully landed, the drone enters the termination state which cleans up the autonomy pipeline and disarms the drone. Given that the drone's battery has a sufficient residual voltage, a new mission can be started.
+\end{itemize}
 
-During a mission the drone flies to different waypoints. During the lateral motion periods of these flights, the drone continuously processes the incoming landing sites using the LSM.
+\subsection{Landing Behavior}\label{subsec:landing_behavior}
 
-Once the last mission waypoint has been reached, the transition to the landing behavior occurs.
+The core of the landing behavior is what happens between selecting a landing site and finally vertically landing. As previously mentioned, the landing behavior was designed to be safe. Additionally, within this safe behavior space, the effort was made to derive an efficient behavior implementation.
 
-At first, 
-
-\section{Behavior Tree Implementation}\label{subsec:behavior_tree}
-
-As a mission is flown at 100 m altitude we would like to verify it closer to the ground where we can be more certain about measured terrain.
-
-To this end, the drone moves laterally to a chosen landing site and then descends blindly to a certain verification altitude above that spot. We can do so safely as, yes, the initial landing site estimate from 100 m altitude might not be a good choice, however as can be seen in \cref{eq:SFM_depth_error}, given an approximate baseline of 15 m at 100 m altitude with a focal length of 256 and an assumed subpixel disparity error of 0.5, the structure from motion algorithm yields depth measurements with an approximate depth error of 1.3 m.
-
-\begin{align}
-    {\Delta z} &= \frac{z^2}{f  \cdot b}\Delta d\\
-    {\Delta z} &= \frac{100m^2}{256  \cdot 15m}0.5 = 1.302m
-    \label{eq:SFM_depth_error}
-\end{align}
-
-Therefore, in the very worst case scenario of a depth error of 1.3 m we are still safe when we descend to a verification altitude of 2.5 m above a detected landing site. Avoiding SFM verification patterns at intermediate altitudes saves a tremendous amount of time and energy.
-
-The verification is performed using the stereo camera(\ref{sec:StereoDepth}).
-
-
-
-\subsection{Action Definition}
-The final landing behavior is implemented in the form of a behavior tree which allows the adaptive and scalable implementation of simple tasks to create a larger and more complex decision-making entity.
-
-The autonomy framework already defined the core control flow nodes as well as some action nodes required for the landing behavior. (\ref{subsec:setup:behavior_tree}) Hereafter displayed is a list of additional actions needed to be defined in this work. It should be noted, that they define individual actions and should not be a description of the entire behavior. For this consider \cref{subsec:behavior_tree}
-
-\subsubsection{CheckLandingSiteAction}
-
-Simple utility action which checks whether any landing sites have been found by querying the LSM's landing site buffer length.
-
-\subsubsection{ChangeAltitudeLSAction}
-
-This action was implemented with the purpose to allow us to descend to a certain fixed altitude above a chosen landing site. The creation of another action for this purpose is simply a utility which lets us avoid having to pass a function pointer in the action definition as the arguments passed in a behavior tree are always evaluated at the time of the creation.
-
-
-
-
-
-\subsubsection{GetLandingSiteAction}
-
-Upon leaving the mission state and entering the landing state, the autonomy attempts to select the currently best landing site according to the in \cref{subsubsec:LandingSiteHeuristic} introduced loss function.
-
-This is done by using the landing site manager in order to rank the landing sites in an ascending sorted list (as opposed to a max-heap) and selecting the first entry with the lowest loss.
-
-The selected landing site is then stored in a blackboard interface which allows easy data sharing between all the actions within the autonomy.
-
-Once a landing site has been chosen, the fail-safe mechanism to go to that landing site is the following:
+The conceptual landing behavior which is started at the end of the mission state and repeated a predetermined number of times is the following:
 
 \begin{enumerate}
-    \item Ascend to a safe altitude.
-    \item Traverse laterally to the landing site's position.
-    \item Descend to the landing site or verification altitude.
+    \item A check is made, whether any landing sites have been registered yet
+    \begin{enumerate}
+        \item If no landing site was detected, go to a new location and fly a pattern until a potential site has been found.
+
+        This procedure is repeated a predetermined amount of times. If they fail consistently, the drone returns home by ascending to a safe altitude, traversing to the home location and descending until touchdown, slowing down upon reaching a certain proximity above ground.
+        \item If there are landing sites, order them in ascending order (regarding their loss scores) and pick the best one.
+    \end{enumerate}
+    \item Using the drone's current position, the landing site's location and the site's obstacle altitude parameter, determine a minimum safe clearing altitude up to which to ascend.
+    \item Traverse to the considered landing site.
+    \item Descend to a predetermined verification altitude above ground (during this descent the stereo camera takes over at some point).
+    \item Hover for a given duration.
+    \item Perform the verification check introduced in \cref{subsubsec:verification}.
+    \begin{enumerate}
+        \item If verification is successful, initiate landing.
+        \item If verification failed, ban landing site and return to point 1.
+    \end{enumerate}
 \end{enumerate}
 
-The question remains however, what the adequate clearing altitude is. The goal is to find an altitude high enough to fly safely without the risk of collision yet low enough as to not waste energy for the increased ascent / descent distances.
+\section{Software Implementation}\label{sec:landing_impl}
 
-This is where the aforementioned obstacle altitude from \cref{subsec:obstacle_altitude} comes in. The obstacle altitude gives us an indication of the height to clear around the landing site. Therefore, we can take this as the start altitude for the derivation.
+The final landing behavior is implemented in the form of a behavior tree which allows the adaptive and scalable implementation of simple tasks to create a larger and more complex decision-making entity.
 
-As the DEM created by LSD covers only a limited area, the obstacle altitude is only an indication of the highest terrain present at the chosen landing site. The worst case scenario would be the detection of the landing site at the very edge of the DEM shortly before significantly higher terrain starts. Therefore, one has to anticipate this case. 
+\subsection{Action Definition}\label{subsec:actn_def}
 
-In practice a safe altitude buffer is implemented by assuming the worst case 45-degree incline of the terrain starting immediately at the landing site. Thus, the necessary clearing altitude can be derived by linearly interpolating the final value from the initial obstacle altitude and the distance between the drone and the landing site which needs to be covered.
+The autonomy framework already defined the core control flow nodes as well as some action nodes required for the landing behavior. These are introduced in \cref{subsec:setup:behavior_tree}. Hereafter displayed is a list of additionally required actions for the landing behavior. It should be noted, that they define individual, independent actions and should not be considered a description of the entire behavior. For this consider \cref{subsec:behavior_tree}
 
-In the end to not ascend to excessive heights, the clearing altitude is capped at a pre-determined, terrain-based fail-safe altitude
+\begin{itemize}
+    \item CheckLandingSiteAction
 
-\begin{align}
-    z_{\text{clear}} &= z_{\text{obst.}} + z_{\text{buffer}} + d_{\text{drone-LS}}\\
-    z_{\text{clear}} &= \text{min}\left(z_{\text{clear}}, z_{\text{fail-safe}}\right)
-\end{align}
-Above we can see the derivation of the clearing altitude where $z_{\text{clear}}$ defines the clearing altitude, $z_{\text{buffer}}$ a safety buffer on top of the obstacle altitude, $d_{\text{drone-LS}}$ the drone's current distance to the site and $z_{\text{fail-safe}}$ the fail-safe altitude at which the clearing altitude is capped.
+    Simple utility action which checks whether any landing sites have been found by querying the LSM's landing site buffer length.
+    \item ChangeAltitudeLSAction
 
-\subsubsection{LandingSiteVerificationAction}
+    This action was implemented with the purpose to allow us to descend to a certain fixed altitude above a chosen landing site. The creation of another action for this purpose is simply a utility which lets us avoid having to pass a function pointer in the action definition as the arguments passed in a behavior tree are always evaluated at the time of the creation.
+    \item GetLandingSiteAction
 
-Once a landing site is chosen, we have to make sure it's a good spot to land before attempting to do so. 
+    Upon leaving the mission state and entering the landing state, the autonomy attempts to select the currently best landing site according to the in \cref{subsubsec:LandingSiteHeuristic} introduced loss function.
 
-The LandingSiteVerificationAction does this by using the verification altitude property of a given landing site:
+    This is done by using the landing site manager in order to rank the landing sites in an ascending sorted list (as opposed to a max-heap) and selecting the first entry with the lowest loss.
 
-When a landing site is detected by SFM at 100 m altitude it will be overwritten when re-detected at 2.5 m above the ground. 
+    The selected landing site is then stored in a blackboard interface which allows easy data sharing between all the actions within the autonomy.
 
-This is the mechanism exploited in order to verify a landing site. The drone hovers above the landing site for a pre-determined duration in place and attempts to re-detect the chosen landing site. This means that the LSM continuously processing incoming landing sites and if one is close enough to an existing one, it is considered a re-detection. In that case, the landing site is verified, and the landing action can be triggered.
+    Once a landing site has been chosen, the fail-safe mechanism to go to that landing site is the following:
 
-In case of verification failure, the landing site is not only removed but actively banned in order to prevent future false positives at high altitudes.
+    \begin{enumerate}
+        \item Ascend to a safe altitude.
+        \item Traverse laterally to the landing site's position.
+        \item Descend to the landing site or verification altitude.
+    \end{enumerate}
 
-Additionally, as previously mentioned, the verification hovering at low altitudes leads most probably to the detection of close by landing sites. This is arguably as important as the verification of a previous landing site as it yields a good candidate in close proximity. In practice, it turned out,  it is equally likely to verify a landing site as it is to not verify one but detect a high quality landing site close by.
+    The question remains however, what the adequate clearing altitude is. The goal is to find an altitude high enough to fly safely without the risk of collision yet low enough as to not waste energy for the increased ascent / descent distances.
 
-\subsubsection{LandingSiteSearchAction}
+    This is where the aforementioned obstacle altitude from \cref{subsec:obstacle_altitude} comes in. The obstacle altitude gives us an indication of the height to clear around the landing site. Therefore, we can take this as the start altitude for the derivation.
 
-The previously described actions are core implementations of the nominal behavior in the landing sequence. However, what happens when no landing sites are found, either through fault of the landing site detection setup or due to really unfavorable terrain?
+    As the DEM created by LSD covers only a limited area, the obstacle altitude is only an indication of the highest terrain present at the chosen landing site. The worst case scenario would be the detection of the landing site at the very edge of the DEM shortly before significantly higher terrain starts. Therefore, one has to anticipate this case. 
 
-The most intuitive answer seems a good idea - simply look further for a site. The technical implementation of this task at high altitudes requires the detection by SFM and therefore lateral motion. So an easy solution is to fly a pattern at a new location with the exact same landing site handling procedure as in the nominal case.
+    In practice a safe altitude buffer is implemented by assuming the worst case 45-degree incline of the terrain starting immediately at the landing site. Thus, the necessary clearing altitude can be derived by linearly interpolating the final value from the initial obstacle altitude and the distance between the drone and the landing site which needs to be covered.
 
-The LandingSiteSearchAction implements this through a predefined rectangle of waypoints which are flown through. This sub-mission is cancelled upon detecting a single landing site. In that case the usual landing procedure is continued.
+    In the end to not ascend to excessive heights, the clearing altitude is capped at a pre-determined, terrain-based fail-safe altitude
 
-\subsubsection{GetNextPatternCenterWPAction}
+    \begin{align}
+        z_{\text{clear}} &= z_{\text{obst.}} + z_{\text{buffer}} + d_{\text{drone-LS}}\\
+        z_{\text{clear}} &= \text{min}\left(z_{\text{clear}}, z_{\text{fail-safe}}\right)
+    \end{align}
+    Above we can see the derivation of the clearing altitude where $z_{\text{clear}}$ defines the clearing altitude, $z_{\text{buffer}}$ a safety buffer on top of the obstacle altitude, $d_{\text{drone-LS}}$ the drone's current distance to the site and $z_{\text{fail-safe}}$ the fail-safe altitude at which the clearing altitude is capped. A schematic visualization of this is depicted in \cref{fig:clear_alt}.
+    \item LandingSiteVerificationAction
+    
+    Once a landing site is chosen, we have to make sure it's a good spot to land before attempting to do so. 
 
-In case of failure when looking for additional landing sites, the adaptive procedure is to simply move to a new location and try anew. 
+    The LandingSiteVerificationAction does this by using the verification altitude property of a given landing site:
 
-The drone picks a random position around the final mission waypoint, flies there and again moves laterally in a rectangle shape in the hope of detecting landing sites.
+    When a landing site is detected by SFM at 100 m altitude it will be overwritten when re-detected at 2.5 m above the ground. 
 
-Note: This procedure is repeated a fixed number of times using the retry control node described in \cref{subsubsec:decorator_nodes}. Optimally however, this would be performed as long as the battery state permits it. 
+    This is the mechanism exploited in order to verify a landing site. The drone hovers above the landing site for a pre-determined duration in place and attempts to re-detect the chosen landing site. This means that the LSM continuously processing incoming landing sites and if one is close enough to an existing one, it is considered a re-detection. In that case, the landing site is verified, and the landing action can be triggered.
 
+    In case of verification failure, the landing site is not only removed but actively banned in order to prevent future false positives at high altitudes.
+
+    Additionally, as previously mentioned, the verification hovering at low altitudes leads most probably to the detection of close by landing sites. This is arguably as important as the verification of a previous landing site as it yields a good candidate in close proximity. In practice, it turned out,  it is equally likely to verify a landing site as it is to not verify one but detect a high quality landing site close by.
+    \item LandingSiteSearchAction
+
+    The previously described actions are core implementations of the nominal behavior in the landing sequence. However, what happens when no landing sites are found, either through fault of the landing site detection setup or due to really unfavorable terrain?
+
+    The most intuitive answer seems a good idea - simply look further for a site. The technical implementation of this task at high altitudes requires the detection by SFM and therefore lateral motion. So an easy solution is to fly a pattern at a new location with the exact same landing site handling procedure as in the nominal case.
+
+    The LandingSiteSearchAction implements this through a predefined rectangle of waypoints which are flown through. This sub-mission is cancelled upon detecting a single landing site. In that case the usual landing procedure is continued.
+    \item GetNextPatternCenterWPAction
+
+    In case of failure when looking for additional landing sites, the adaptive procedure is to simply move to a new location and try anew. 
+
+    The drone picks a random position around the final mission waypoint, flies there and again moves laterally in a rectangle shape in the hope of detecting landing sites.
+
+    Note: This procedure is repeated a fixed number of times using the retry control node described in \cref{subsubsec:decorator_nodes}. Optimally however, this would be performed as long as the battery state permits it. 
+    \end{itemize}
+
+    \begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.3]{images/autonomous_landing/clearing_altitude.png}
+    \caption{Schematic of the clearing altitude decision procedure}
+    \label{fig:clear_alt}
+    \end{figure}
+
+\subsection{Behavior Tree Implementation}\label{subsec:behavior_tree}

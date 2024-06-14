@@ -1,6 +1,56 @@
 \chapter{Stereo Camera Depth Node Implementation}
 \label{chapter:stereo_camera_depth}
 
+\section{Theoretical Analysis}\label{subsec:theoretical_analysis}
+
+When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lens. 
+
+Assuming a perfectly calibrated and rectified camera there is still always an inaccuracy in the depth estimation arising from the disparity error.
+
+The depth error is estimated using the following derivation. The formula to derive a depth value from a calculated disparity is:
+
+\begin{equation}\label{eq:depth_from_disp}
+    z = \frac{f \cdot b}{d}
+\end{equation}
+
+Where b is the z is the depth estimate, b is the baseline, f is the focal length and d is the disparity value.
+
+Taking the derivative of z w.r.t. d we get
+
+\begin{equation}
+    \frac{\partial z}{\partial d} = - \frac{f  \cdot b}{z^2}
+\end{equation}
+
+And substituting (\cref{eq:depth_from_disp}) we get:
+
+\begin{equation}
+    {\partial z} = \frac{z^2}{f  \cdot b}\partial d
+\end{equation}
+
+Where the sign was left away as for our application there lies equal danger in a point being perceived too close and too far away.
+
+For the maximum altitude given a maximum allowable depth error this yields:
+
+\begin{equation}
+    z_{\text{max}} = \sqrt{\frac{\Delta z_{\text{max}} \cdot b \cdot f}{\Delta d}}
+\end{equation}
+
+Where $\Delta z$ is the depth error and $\Delta d$ the disparity error.
+
+The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10 cm and a focal length of 256.
+
+With these properties and estimating a subpixel-precision disparity error of 0.5 pixels the depth error at varying altitudes looks as follows:
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.19]{images/preparation/stereo_limit.png}
+    \label{fig:stereo_limit}
+\end{figure}
+
+Let's assume we allow a maximum depth error of 10 cm. Considering this constraint we can fly at a maximum altitude of about 3 m as indicated in \cref{fig:stereo_limit}.
+
+This limitation has to be kept in mind. However, it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
+
 \section{Implementation}
 
 Like Structure from Motion, the stereo depth instance is a ROS node which is given images and image poses from the xVIO state estimator. As the state estimator was in its final development stages during my thesis, camera images and a ground truth camera pose from the simulation were used instead as input for the stereo algorithm. Note that only one camera pose is given as the second one is derived in a straight forward manner, given the fixed hardware baseline.
@@ -78,16 +128,6 @@ The chosen StereoSGBM (Semi-Global Block Matching) algorithm creates a disparity
 
 % TODO: show disparity image output and note the cutoff which comes from OpenCV's stereo algorithm
 
-\subsubsection{StereoSGBM vs StereoBM}\label{subsec:bmvssgbm}
-
-Apart from the StereoSGBM implementation, OpenCV provides the StereoBM algorithm which in general is faster but less precise.
-
-Implementing and comparing the two algorithms the following results were seen:
-
-% TODO: Image of SteroSGBM vs StereoBM
-
-% TODO: replace analysis hereafter
-As can be seen in the above figure, StereoBM sometimes showed unsatisfactory point clouds. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital component of the pipeline, and thus, the quality must not be compromised. Therefore, StereoSGBM was retained as the algorithm of choice for the stereo depth creation.
 
 \subsection{Point Cloud Creation}
 
@@ -122,10 +162,11 @@ The formulas for the point coordinates in the camera frame are shown in \cref{eq
 
 Lastly, to get the point cloud in the world frame, the coordinate transform is applied:
 
-\begin{equation}
-    r_{wp}^W = r_{wc}^W + R_{WC} \cdot r_{cp}^C = r_{wd}^W + R_{WD} \cdot r_{dc}^D + R_{WC} \cdot r_{cp}^C
+\begin{align}
+    r_{wp}^W &= r_{wc}^W + R_{WC} \cdot r_{cp}^C\\
+             &= r_{wd}^W + R_{WD} \cdot r_{dc}^D + R_{WC} \cdot r_{cp}^C
     \label{eq:transform_CW}
-\end{equation}
+\end{align}
 
 Where
 
@@ -142,8 +183,20 @@ Where
 
 The final output of the node is a generated point cloud in the world frame together with two poses representing the camera locations of the generated point cloud.
 
+\subsubsection{StereoSGBM vs StereoBM}\label{subsec:bmvssgbm}
 
-\subsection{Switching}
+Apart from the StereoSGBM implementation, OpenCV provides the StereoBM algorithm which in general is faster but less precise.
+
+Implementing and comparing the two algorithms the following results were seen:
+
+% TODO: Image of SteroSGBM vs StereoBM
+
+% TODO: replace analysis hereafter
+As can be seen in the above figure, StereoBM sometimes showed unsatisfactory point clouds. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital component of the pipeline, and thus, the quality must not be compromised. Therefore, StereoSGBM was retained as the algorithm of choice for the stereo depth creation.
+
+
+
+\subsection{Switching}\label{subsec:switching}
 
 In order to achieve the final desired perception mechanism of flying laterally with SFM and using a stereo camera depth node at low altitudes, one needs to switch between the two alternatives.
 
@@ -159,6 +212,8 @@ Therefore, the switching is performed by using a separate ROS subscriber which c
     \includegraphics[scale=0.17]{images/preparation/stereo/switching.png}
     \caption{Laser Ranger Finder Based Switch between Depth Sources}
 \end{figure}
+
+% TODO also mention the start only after 30cm altitude because of too large baseline and insufficient FOV in the beginning so close above ground
 
 \subsection{Landing Site Detection without Lateral Motion}
 

@@ -244,17 +244,34 @@ The MAVROS connector establishes the off board mode in the PX4 autopilot in orde
 
 The ROS connector receives health events about the system's status from the health guard node, the drone's current pose from the flight controller's state estimator and, crucial for this work, the detected landing sites from the LSD algorithm.
 
-\subsubsection{Landing Site Manager}
+\subsubsection{Landing Site Manager}\label{subsubsec:LSM}
 
 In parallel to both the state machine and the connector, the autonomy contains another separate entity, the landing site manager. 
 
 It consistently processes the incoming landing sites from the LSD algorithm which were received by the ROS connector. During this processing, each landing site's distance to the drone's current position is calculated, and each landing site is assigned a heuristic value and ordered according to that value in the landing site buffer. This buffer is implemented as a min-heap. This allows the replacement and ordering of a new landing site with comparatively small overhead. 
 
+Prior to this work, the heuristic used for comparison was simply the distance to the drone's current position resulting in the consistent choice of the closest landing site. 
+
+The landing site manager's site processing is depicted in \cref{fig:lsm_ls_processing}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{images/system_overview/lsm_handling.png}
+\caption{Landing site handling from detection to sorted position in the landing site manager: A landing site indicated with a green circle is detected by LSD and given to the autonomy with the location property. The landing site manager assigns the site a heuristic value based on the location and sorts it in the buffer array.}
+\label{fig:lsm_ls_processing}
+\end{figure}
+
 Upon reaching the landing state and executing the landing behavior, the landing site buffer is ordered in descending order and the best landing site is returned which can then be used as the next navigation target to finally land at.
 
-Prior to this work, the comparison metric used was simply the distance to the drone's current position resulting in the consistent choice of the closest landing site. In this thesis the landing site manager was expanded significantly regarding the heuristics considered and the general handling of detected landing sites. 
-
 Both the landing site manager and the connector are implemented as singleton nodes for facilitated use throughout the entire autonomy framework. This means that they are accessible in every action performed by any state of the state machine without the need of instantiation of a landing site manager object instance. This is achieved by removing the copy constructor of the class as well as the assignment operator and creating an instance acquisition function, which returns a pointer to the single static instantiation of the class.
+
+In this thesis the landing site manager was expanded significantly, both regarding the heuristics considered and the general handling of detected landing sites.
+
+\subsubsection{Blackboard}\label{subsubsec:blackboard}
+
+The blackboard is yet another singleton entity within the autonomy which allows the buffering of information to be shared between individual modules of the state machine.
+
+It is implemented using a template based approach so that any variable can be directly stored and retrieved in a dynamic way without having to change the structure of the blackboard.
 
 \subsection{Finite-State Machine}
 
@@ -316,7 +333,11 @@ After the root node, three categories of tree nodes can follow:
 
     Similarly to a state machine, the workflow of a behavior tree starts with the root node which continuously sends a tick signal to its child node. 
 
-\subsubsection{Control Flow Nodes}
+    An example of a simple behavior tree is shown in \cref{}.
+
+    
+
+\subsubsection{Autonomy Control Flow Nodes}
 
 The following control flow nodes are implemented:
 
@@ -333,7 +354,7 @@ The following control flow nodes are implemented:
     In this control flow node the child nodes are ticked in the hierarchical fashion as usual. However instead of waiting for the SUCCESS or FAILURE result of a given child node, its successor is already ticked. The parallel node returns SUCCESS if a predefined number of child nodes return SUCCESS or FAILURE in case a predefined number or all child nodes return FAILURE.
 \end{itemize}
 
-\subsubsection{Decorator Nodes}\label{subsubsec:decorator_nodes}
+\subsubsection{Autonomy Decorator Nodes}\label{subsubsec:decorator_nodes}
 
 The most important decorator nodes are:
 
@@ -352,7 +373,7 @@ The most important decorator nodes are:
     Adding a timeout to an action node which otherwise wouldn't be temporally limited.
 \end{itemize}
 
-\subsubsection{Action Nodes}\label{subsubsec:setup:action_nodes}
+\subsubsection{Autonomy Action Nodes}\label{subsubsec:setup:action_nodes}
 
 There are a multitude of actions required for the various subtask a rotorcraft has to perform during a mission. The most important ones for the landing behavior in this work are the following:
 

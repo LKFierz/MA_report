@@ -7,8 +7,7 @@ The autonomy framework\citep{Autonomy} allows us to fly independent missions at 
 
 At low altitudes SFM works as well but surrounded with obstacles, the need for lateral motion poses significant risk. This is because a local state estimator is by nature prone to accumulate an estimation error and the same holds for the structure from motion approach. Our terrain knowledge can thus become void. 
 
-To overcome this issue, a range sensor can be used. As LiDAR might come to mind. However, a LiDAR sensor produces rather sparse point clouds unless a newer sensor like for instance Ouster's OS1-128 %TODO reference here
-sensor is used. In that case, there remains the weight issue with the sensor's 495g. As the drone is going to fly on Mar's very thin atmosphere, this isn't feasible. 
+To overcome this issue, a range sensor can be used. As LiDAR might come to mind. However, a LiDAR sensor produces rather sparse point clouds unless a newer sensor like for instance Ouster's OS1-128 sensor is used. In that case, there remains the weight issue with the sensor's 495g. As the drone is going to fly on Mar's very thin atmosphere, this isn't feasible. 
 
 %TODO: Other depth sensors?
 Staying with the project's theme of visual sensors, a stereo camera poses a solution as it offers in-place triangulation with a very low weight ($\tilde 10g$). Therefore, in this thesis I present a stereo camera range node implementation to remedy the shortcomings at low altitudes.
@@ -25,11 +24,10 @@ As mentioned in \cref{sec:rel_stereo}, state-of-the-art deep learning based ster
 
 The initial goal of the stereo camera implementation of this work was to show proof of concept for this approach of depth detection without lateral motion. Due to personal experience with the OpenCV library, the initial choice of stereo depth method was OpenCV's StereoSGBM algorithm. This algorithm is introduced in \cref{subsec:disparity_creation}.
 
-JPL has its own visual library called JPLV containing a stereo matching method which was also considered throughout the time of this thesis. However, as there was no specific reason to switch away from the working StereoSGBM implementation, the continuation thereof was pursued.
+JPL has its own visual library called JPLV containing a stereo matching method which might be a more adequate choice for the future. This is because throughout various projects at JPL, issues with the StereoSGBM algorithm occurred. \textbf{\@ Roland: Which?}
+Also, JPLV contains implementations for the often used CAHVORE camera model which OpenCV natively does not support. However, for the time of this work, especially using camera images without distortion, there was no specific reason to switch away from the working StereoSGBM implementation, therefore, the continuation thereof was pursued.
 
-Additionally, OpenCV's StereoBM variation was considered which is in general faster but less accurate than StereoSGBM. An analysis thereof is shown in \cref{subsec:bmvssgbm}.
-
-
+Furthermore, OpenCV's StereoBM variation was considered which is in general faster but less accurate than StereoSGBM. An analysis thereof is shown in \cref{subsec:bmvssgbm}.
 
 
 \subsection{Stereo Camera Advantages}
@@ -66,56 +64,6 @@ When a landing site has been selected we need to make sure that the landing site
 All in all the stereo camera setup allows us to perceive a landing site at course altitude and after having traversed horizontally to that location, we can simply descend to a stereo camera friendly altitude for the verification. Compared to repeated lateral coverage of the area in question this is a huge increase in efficiency.
 
 Looking in depth at the stereo alternative of depth generation, we can first analyze the theoretical threshold of this system.
-
-\subsection{Theoretical Analysis}\label{subsec:theoretical_analysis}
-
-When it comes to depth perception the obvious drawback of a stereo camera is its limited baseline. It only perceives depth accurately for objects within a certain proximity to the lens. 
-
-Assuming a perfectly calibrated and rectified camera there is still always an inaccuracy in the depth estimation arising from the disparity error.
-
-The depth error is estimated using the following derivation. The formula to derive a depth value from a calculated disparity is:
-
-\begin{equation}\label{eq:depth_from_disp}
-    z = \frac{f \cdot b}{d}
-\end{equation}
-
-Where b is the z is the depth estimate, b is the baseline, f is the focal length and d is the disparity value.
-
-Taking the derivative of z w.r.t. d we get
-
-\begin{equation}
-    \frac{\partial z}{\partial d} = - \frac{f  \cdot b}{z^2}
-\end{equation}
-
-And substituting (\cref{eq:depth_from_disp}) we get:
-
-\begin{equation}
-    {\partial z} = \frac{z^2}{f  \cdot b}\partial d
-\end{equation}
-
-Where the sign was left away as for our application there lies equal danger in a point being perceived too close and too far away.
-
-For the maximum altitude given a maximum allowable depth error this yields:
-
-\begin{equation}
-    z_{\text{max}} = \sqrt{\frac{\Delta z_{\text{max}} \cdot b \cdot f}{\Delta d}}
-\end{equation}
-
-Where $\Delta z$ is the depth error and $\Delta d$ the disparity error.
-
-The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10 cm and a focal length of 256.
-
-With these properties and estimating a subpixel-precision disparity error of 0.5 pixels the depth error at varying altitudes looks as follows:
-
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.19]{images/preparation/stereo_limit.png}
-    \label{fig:stereo_limit}
-\end{figure}
-
-Let's assume we allow a maximum depth error of 10 cm. Considering this constraint we can fly at a maximum altitude of about 3 m as indicated in \cref{fig:stereo_limit}.
-
-This limitation has to be kept in mind. However, it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
 
 \section{Ground Truth Depth}
 
@@ -181,8 +129,11 @@ Therefore, the ground truth depth could be used for the testing of the autonomou
 
 Having implemented a stereo camera as a low altitude alternative to SFM, and after ensuring a correct ground truth comparison, the main contribution of this work could be tackled: Bringing the visual landing site pipeline together with the autonomy framework in order to achieve reliable autonomous landing in unknown terrain.
 
-% In the methodology I want to write about the decision making behind my autonomous landing approach. How can I write about 
-The approach of the landing pipeline implementation can be split into the following parts:
+The manner of implementation for the autonomous landing sequence was more or less given by the system architectures which this work combines. The two crucial points of the methodology were the interface between the autonomy framework and the landing site detector and the implementation of the decision-making in the behavior tree of the landing node as well as the landing site manager.
+
+\subsection{LSD - Autonomy Interface}
+
+For the interface with the autonomy, both the autonomy and the landing site detection node had to be altered.
 
 \begin{itemize}
     \item Landing site detection output
@@ -190,122 +141,17 @@ The approach of the landing pipeline implementation can be split into the follow
     Prior to this work, LSD only published one single landing site's location. To give the autonomy more information to make adequate decisions and to avoid the stagnation on a single overconfident landing site, LSD was changed to also first, publish three landing sites each iteration and secondly, yield additional characteristics with each output landing site.
     \item Landing site interface of the autonomy
 
-    The autonomy framework is changed to correctly receive and handle incoming landing sites. The incoming candidates are ordered according to a novel landing site heuristic and updated upon being re-detected.
-    \item Autonomous landing behavior
-
-    Using the newly expressive landing sites and their handling procedure, the adaptive landing instance is put in place using an existing behavior tree framework within the autonomy. Additional modular action nodes are created and previously existing ones are altered in order to achieve a precise and safe landing procedure.
+    The autonomy framework was changed to correctly receive and handle the incoming landing sites with all the newly associated properties. The incoming candidates are ordered according to a novel landing site heuristic and further landing site handling concepts like re-detection and banishment were introduced.    
 \end{itemize}
 
-% TODO Write out LSD preparation aka to prepare for lanidng this and this...
-\section{Landing Site Handling}\label{subsubsec:LandingSiteHeuristic}
+\subsection{Autonomous Landing Behavior}
 
-In order to make high quality landing decisions in the autonomy framework one needs high quality information sent to the system by the landing site detection algorithm.
+As previously explained, the landing behavior in the autonomy framework is implemented using a behavior tree consisting of small modular and expandable actions. The existing BT framework and the available actions prior to this work are shown in \cref{subsec:setup:behavior_tree}.
 
-\subsection{LSD Properties}\label{sec:LSproperties}
+The two paramount qualities in pursuit of which the landing behavior was designed are safety and efficiency. Naturally safety is the first most concern. We want a reliable autonomous landing procedure for the drone to repeatedly land safely. However, the more efficient it is, the more daring science missions can be designed and the faster the red planet can be explored in detail.
 
-Before this work the output of the landing site detection algorithm was merely the location of a found landing site. However, as described in \cref{subsubsec:setup:haz_seg} the landing site detection algorithms segments hazards based on roughness and slope. Thereafter, it considers the size of a landing site as well as the uncertainty associated with a certain selected location. 
+For the conceptual design of the autonomous landing behavior a fail-safe dogma was adopted meaning that the drone never moved both horizontally and vertically. Instead, any required traversal was preceded by an adequate ascent to a safe height and followed by a vertical descent to the desired altitude at the new location. Secondly the available landing site characteristics were used to enhance the overall efficiency. 
 
-Simply outputting the location of a landing site is therefore a waste of information when so many characteristics are at hand to make an informed selection. 
 
-I decided on the following properties to be the content of the LSD output:
 
-\begin{itemize}
-    \item Location
-    \item Uncertainty
-    \item Roughness
-    \item Size
-    \item Obstacle Altitude
-\end{itemize}
 
-The final landing site detection output is a custom landing site ROS message containing the above-mentioned characteristics of the detected spot.
-
-Note: The supplied landing site from LSD already underwent a filtering procedure utilizing the roughness, slope, size and uncertainty properties. The value in reconsidering them again in the autonomy is two-fold.
-
-First, we have to remember that LSD does not use the current distance to the drone in its landing site segmentation. Therefore, in order for the autonomy to be able to weight the quality of a landing site (roughness, slope, size, uncertainty) against its convenience (distance to the drone) we need the complete set of properties at all times.
-
-Secondly, we might want a bigger handle in the weighting decision of these properties against each other. If small drifts are detected in the flight controller's actuator signals for instance, the biggest possible landing site might be of interest leading to high weighting of the size contribution in the autonomy.
-
-\textbf{Location}
-
-The location of the landing site in the world frame.
-\textbf{Roughness}
-
-The roughness value the exact value already used for the hazard segmentation step in the landing site detection. See \cref{subsubsec:setup:haz_seg} for an explanation of this property.
-
-\textbf{Uncertainty}
-
-The uncertainty value is also a product of the landing site detection algorithm. It denotes the averaged uncertainty across the area around a given landing site. The uncertainty of a single map cell denotes the stereo depth error estimates merged over time.
-
-\textbf{Size}
-
-To determine the size of a landing site, the landing site detection algorithm performs a distance transform on the created landing site map in order to find the closest non-landing site for any found landing site. This returns the radius of the largest valid landing circle around a landing site. Calculating the physical value, the metric radius is returned as the size of a landing site.
-
-\textbf{Obstacle Altitude}\label{subsec:obstacle_altitude}
-
-The obstacle altitude was newly introduced in this work. It defines the current highest point of the aggregated DEM's highest resolution layer. As no actual object detection is performed and no hazard information is retained in this visual pipeline, this value serves the autonomy as an indication of the obstacles heights to avoid in the vicinity of a certain landing site. More on this in \cref{subsubsec:LandingSiteHeuristic}.
-
-\subsection{Landing Site Heuristic}
-
-The autonomy processes the in \cref{sec:LSproperties} listed values in order to arrive at the following final landing site properties:
-
-\begin{itemize}
-    \item Current Distance to Drone
-    \item Roughness
-    \item Uncertainty
-    \item Size
-    \item Verification Altitude
-\end{itemize}
-
-The final heuristic defining the quality of a landing site is in fact a square loss function:
-
-\begin{equation}
-    L_{LS} = w_{dist}L_{dist} + w_{rough}L_{rough} + w_{var}L_{var} + w_{size}L_{size} + w_{verAlt}L_{verAlt}
-    \label{eq:loss_fct}
-\end{equation}
-
-\textbf{Current Distance to Drone - $L_{dist}$}
-Well likely the single most important characteristic of a landing site\footnote[2]{Each received landing site has already undergone a threshold filtering regarding slope and roughness.}. Each iteration the current distance to the drone's position is calculated for each retained landing site. The distance is then normalized by dividing it by the cruise altitude which is 100 m. In practice there were easily enough landing sites found while moving to allow landing sites to fall off when being farther away than 100 m.
-
-\textbf{Roughness - $L_{rough}$}
-%TODO
-
-The roughness property is the unaltered roughness value received from LSD. It is already normalized and enters the loss function as it is. 
-
-\textbf{Uncertainty - $L_{var}$}
-
-The same holds for the uncertainty. It is already normalized by design and enters the loss function unaltered.
-
-\textbf{Size - $L_{size}$}
-
-Analogous to the roughness and uncertainty properties the size comes from the landing site detection directly. However, unlike the two preceding properties it is not normalized but simply denotes the metric radius of the largest circle of valid landing area that can be fit around a given landing site. This is achieved in LSD by performing a distance transform on the created landing site image.
-
-In order to normalize this value the maximum landing site size is retained and each landing site's size is divided by it in order to achieve normalized size information.
-
-Also, as can be seen in \cref{eq:loss_fct}, the size contribution enters the loss function with a negative sign. This is due to the fact that compared to all other characteristics, the size defines a property that we would like to maximize.
-
-\textbf{Verification Altitude - $L_{verAlt}$}\label{subsubsec:ver_alt}
-
-A site's verification altitude is the smallest vertical distance between the drone and the landing site at which that site was (re-) detected. 
-
-The verification altitude is a useful property because of numerous reasons.
-\begin{itemize}
-    \item Further Indication of Certainty
-
-    First, similar to the uncertainty metric the verification altitude indicates how certain we can be about a detected landing site as spots detected at lower flight altitudes are more likely correct due to the reduced depth error. Even though it might seem overlapping with the uncertainty property in this regard, these two characteristics are quite complementary as the uncertainty takes OMG convergence and camera specifics into consideration while the verification altitude is a purely location based metric.
-    \item Landing Site Property Updates
-
-    As the verification altitude yields a simple and good estimation of the trustworthiness of an incoming landing site, it can be used as a flag to know, when a landing site's properties should be updated. When a landing site is re-detected with a verification altitude lower than the previously stored one, the algorithm trusts it more and alters the previously stored properties to the new ones received.
-    \item Verification
-
-    Continuously updating the verification altitude upon re-detection allows us to determine the lowest altitude, at which a landing site was re-detected. This information can be used to verify that a given site was considered a valid landing spot even at low altitudes. 
-\end{itemize}
-
-\subsection{Landing Site Manager}
-
-Prior to this thesis, the landing site manager received artificially generated landing sites from a dummy landing site node. In this work the LSM was connected to the actual landing site detection output. 
-
-% Added re-detection, verification and banning
-
-\subsection{Implementation}
-
-With the interface and the input fixed, the actual implementation could be tackled. This is explained in detail in \cref{chapter:autonomous_landing_procedure}.
