@@ -353,7 +353,7 @@ In the following, a simulated flight demonstrating this landing behavior is show
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.2]{images/autonomous_landing/flight_overview.png}
+\includegraphics[scale=0.17]{images/autonomous_landing/flight_overview.png}
 \caption{Demonstration flight setup: Left: Arroyo Seco Gazebo map, Right: QGroundControl mission to be flown at 100 m altitude}
 \label{fig:demo_flight_setup}
 \end{figure}
@@ -362,7 +362,7 @@ In the following, a simulated flight demonstrating this landing behavior is show
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.5]{images/autonomous_landing/demo_flight/takeoff1.png}
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/takeoff1.png}
 \caption{Takeoff of the drone: Left: LSD debug image, Right: Ascending drone in the simulation}
 \label{fig:demo_takeoff1}
 \end{figure}
@@ -371,7 +371,7 @@ In the following, a simulated flight demonstrating this landing behavior is show
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.5]{images/autonomous_landing/demo_flight/takeoff2.png}
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/takeoff2.png}
 \caption{Later point of the drone's takeoff}
 \label{fig:demo_takeoff2}
 \end{figure}
@@ -380,10 +380,68 @@ In the following, a simulated flight demonstrating this landing behavior is show
 
 \subsubsection{Mission}
 
-Upon reaching the cruise altitude, the first mission waypoint is pursued. The lateral motion allows SFM to slowly merge its information into the LSD DEM. After a few seconds the SFM information converges sufficiently in order for landing site to be detected on them. 
+Upon reaching the cruise altitude, the first mission waypoint is pursued. The lateral motion allows SFM to slowly merge its information into the LSD DEM. After a few seconds the SFM information converges sufficiently in order for landing site to be detected on them. This is shown in \cref{fig:demo_mission1}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/mission1.png}
+\caption{Initial traversal in the mission state upon reaching cruise altitude.}
+\label{fig:demo_mission1}
+\end{figure}
+
+From this point onwards, the whole mission is flown with the SFM pipeline supplying LSD with depth information and LSD sending detected landing sites to the autonomy.
+
+When reaching the last waypoint of the mission, the landing state is initiated. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/mission_end.png}
+\caption{End of mission state}
+\label{fig:demo_mission_end}%TODO replace with SFM images
+\end{figure}
 
 \subsubsection{Landing Behavior}
+
+Following the landing procedure visualized in \cref{fig:landing_BT}, a landing site is selected. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/ls_selection.png}
+\caption{Start of landing sequence: the best landing site is selected and indicated in the LSD debug window with the black encircled cross.}
+\label{fig:demo_ls_selection}
+\end{figure}
+
+Following the outlined behavior, the drone ascends to a clear altitude and traverses to the landing site location, where it descends to a verification altitude above the ground. This is shown in \cref{fig:demo_ver}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/verification.png}
+\caption{Rotorcraft hovering on top of landing site and trying to re-detect chosen landing site}
+\label{fig:demo_ver}
+\end{figure}
+
+Upon having verified the landing site in question, the last small re-detection correction of the landing site's position is considered and the drone adjusts accordingly as shown in \cref{fig:demo_last_correction}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/last_correction.png}
+\caption{Rotorcraft adjusts position to refined landing site location}
+\label{fig:demo_last_correction}
+\end{figure}
+
 \subsubsection{Final Landing Action}
+
+Finally, the drone can land safely. It descends with a constant velocity which is decreased upon entering a minimum proximity to the landing altitude.
+\cref{fig:demo_final_landing} shows the final location of the rotorcraft after the landing procedure.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/autonomous_landing/demo_flight/landed.png}
+\caption{Final landing of the drone chosen by LSD}
+\label{fig:demo_final_landing}
+\end{figure}
+
+
 
 
 
