@@ -154,7 +154,7 @@ The final procedure is shown below in \cref{fig:lsm_complete}. A received landin
 \label{fig:lsm_complete}
 \end{figure}
 
-\section{Conceptual Behavior}
+\section{Conceptual Behavior}\label{sec:concept_beh}
 
 To understand the landing behavior, the mission as a whole has to be considered.
 
@@ -294,9 +294,98 @@ The autonomy framework already defined the core control flow nodes as well as so
 
     \begin{figure}[h]
     \centering
-    \includegraphics[scale=0.3]{images/autonomous_landing/clearing_altitude.png}
+    \includegraphics[scale=0.2]{images/autonomous_landing/clearing_altitude.png}
     \caption{Schematic of the clearing altitude decision procedure}
     \label{fig:clear_alt}
     \end{figure}
 
 \subsection{Behavior Tree Implementation}\label{subsec:behavior_tree}
+
+In the following, the behavior tree visualizations follow the scheme introduced in \cref{subsubsec:BT_exp}.
+
+\subsubsection{High Level Behavior}
+
+To improve the readability, first, the high level landing behavior is shown in \cref{fig:high_lvl_bt}:
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.18]{images/autonomous_landing/high_level_BT.png}
+\caption{High level landing behavior represented as BT}
+\label{fig:high_lvl_bt}
+\end{figure}
+
+When the landing state is entered, the root node is initiated. First, the core landing behavior outlined in \cref{subsec:landing_behavior} is attempted repeatedly using the retry decorator node. If it is successful, the fallbackRootNode returns success and the landing Action as well as the disarmAction are executed. If the node fails a certain number of times, it returns the failure state and the sequence node to land at the home position is initiated.
+
+\subsubsection{Core Landing Behavior utilizing Landing Sites}
+
+The conceptual implementation of \cref{sec:concept_beh} is shown in \cref{fig:landing_BT}. As for the behavior tree example from the system overview in \cref{subsubsec:BT_exp}, node names are attached when a node type is used more than once. Due to a lack of space and to improve readability, the action nodes in the VerBehSeq (aka verification behavior sequence) were placed onto two lines. Their order is to be read according to the line connections from the sequence node left to right.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.18]{images/autonomous_landing/landing_behavior_BT.png}
+\caption{Landing procedure implementation as behavior tree}
+\label{fig:landing_BT}
+\end{figure}
+
+The left part summarized by the assertLSFB (aka assert landing site fallback) checks, whether landing sites were detected. If they were, the fallback yields success directly. Otherwise, a landing site detection pattern sequence is executed. This side is covered by numbers 1. a) and 1. b) of the conceptual behavior in \cref{sec:concept_beh}.
+
+The right side contains the behavior to be executed when a landing site has been found. These are exactly the steps laid out in numbers 2 - 6. b).
+
+
+\subsubsection{Behavior to Land at Home Position}
+
+The last behavior to define, though simpler than the previous, is the process of returning to and landing at the home position. 
+
+The implementation thereof is shown in \cref{fig:bt_land_at_home}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.2]{images/autonomous_landing/land_at_home_beh.png}
+\caption{Behavior tree of the implementation when landing at the home position}
+\label{fig:bt_land_at_home}
+\end{figure}
+
+The behavior when landing at the home position is very similar to the landing site based landing, however, a bit simpler. The landing location is queried following which the drone ascends to a safe altitude and traverses to the home position. There, the landing action is then initiated.
+
+\subsection{Full Pipeline in Action}
+
+In the following, a simulated flight demonstrating this landing behavior is shown. \cref{fig:demo_flight_setup} Shows the setup of the demonstration flight. Arroyo Seco is the area outside the Jet Propulsion Laboratory in Pasadena, California. The drone takes off to 100 m altitude and traverses to the indicated location where the landing behavior is initiated.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.2]{images/autonomous_landing/flight_overview.png}
+\caption{Demonstration flight setup: Left: Arroyo Seco Gazebo map, Right: QGroundControl mission to be flown at 100 m altitude}
+\label{fig:demo_flight_setup}
+\end{figure}
+
+\subsubsection{Takeoff}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{images/autonomous_landing/demo_flight/takeoff1.png}
+\caption{Takeoff of the drone: Left: LSD debug image, Right: Ascending drone in the simulation}
+\label{fig:demo_takeoff1}
+\end{figure}
+
+\cref{fig:demo_takeoff1} shows the drone's takeoff. During this time LSD is supplied with stereo camera depth point clouds. Note the increasing uncertainty of the outer edges due to the increasing altitude and the fixed baseline.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{images/autonomous_landing/demo_flight/takeoff2.png}
+\caption{Later point of the drone's takeoff}
+\label{fig:demo_takeoff2}
+\end{figure}
+
+\cref{fig:demo_takeoff2} shows the same takeoff at a later point in time. Note how the LSD debug image stayed the same despite the drone having risen to a higher altitude. This is because the stereo camera depth node has been switched off by the laser range finder readings and SFM took over. As SFM does not perceive depth during vertical ascent however, LSD does not register any input.
+
+\subsubsection{Mission}
+
+Upon reaching the cruise altitude, the first mission waypoint is pursued. The lateral motion allows SFM to slowly merge its information into the LSD DEM. After a few seconds the SFM information converges sufficiently in order for landing site to be detected on them. 
+
+\subsubsection{Landing Behavior}
+\subsubsection{Final Landing Action}
+
+
+
+
+

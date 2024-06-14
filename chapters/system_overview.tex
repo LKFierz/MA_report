@@ -333,8 +333,6 @@ After the root node, three categories of tree nodes can follow:
 
     Similarly to a state machine, the workflow of a behavior tree starts with the root node which continuously sends a tick signal to its child node. 
 
-    An example of a simple behavior tree is shown in \cref{}.
-
     
 
 \subsubsection{Autonomy Control Flow Nodes}
@@ -395,7 +393,20 @@ There are a multitude of actions required for the various subtask a rotorcraft h
     Rotates the drone to face the given waypoint.
 \end{itemize}
 
+\subsubsection{Behavior Tree Example}\label{subsubsec:BT_exp}
 
+An example of a simple behavior tree is shown in \cref{fig:BT_exp}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.2]{images/system_overview/BT_example.png}
+\caption{Simple, often used behavior tree example of entering a room}
+\label{fig:BT_exp}
+\end{figure}
+
+Big, rectangular boxes indicate control flow nodes while boxes with round edges are action nodes and small rectangles attached to action nodes are decorator nodes. To distinguish the control flow nodes from each other, their name is attached.
+
+In this example, the root node, depicted as a black circle, initiates a sequence node. The sequence node executes all of its child nodes one by one. The first is a fallback node which checks whether the door is already open using the IsDoorOpen action. If it returns successfully, the fallback node concludes the state success and the rest of the sequence node can be executed. If not, the tree repeatedly attempts to open the door using the Retry decorator node. Either the door opens or the fallback node and therefore also the sequence node fail. Lastly, if the door eventually opens, the other actions of entering and closing the door can be performed.
 
 
 
