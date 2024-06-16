@@ -3,37 +3,58 @@
 
 With the Ingenuity rotorcraft's lifecycle coming to an end, the question about future Mars rotorcrafts and their capabilities draws ever closer.
 
-For the future NASA develops two different rotorcraft Mars concepts. The first is a rotorcraft for low altitudes equipped with a mechanical gripper. It is envisioned to be an alternative way of transporting Mars samples to the retrieval station should the Perseverance rover fail to do so.
+For the future NASA develops two different rotorcraft Mars concepts. 
 
-Secondly, for future large distance missions, NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to cover farther distances at high altitudes with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. These two feats allow a helicopter to perform much advanced science missions compared to Ingenuity. 
+\begin{itemize}
+    \item Mars sample return helicopter concept
+
+    The first is associated with the Mars Sample Return mission in  which NASA's Perseverance rover collects Mars rock and sand samples in test tubes. These tubes are subsequently brought back to a sample retrieval landing platform from which a small rocket (Mars Ascent Vehicle) launches them into Mars orbit. There, ESA's Earth Return Orbiter will enclose them in a highly secure containment capsule and deliver them to Earth.
+    
+    In case that the Perseverance rover won't be able to collect the test samples and deliver them to the lander, a Mars Sample Return helicopter concept is envisioned. This is a rotorcraft for low altitudes equipped with a mechanical gripper in order to offer an alternative way of transporting Mars samples to the retrieval station should the Perseverance rover fail to do so.
+
+    \item Mars Science Helicopter (MSH)
+
+    Secondly, for future exploratory large distance missions, NASA is conceptualizing a Mars Science Helicopter (MSH) project. The aspirations for such a rotorcraft are on one hand to cover farther distances at high altitudes with accurate state estimation and on the other to land safely, autonomously and reliably in previously unknown terrain. These two feats allow a helicopter to perform much advanced science missions compared to Ingenuity. 
+\end{itemize}
 
 The Long Range Navigation (LORNA) project that I have been involved with is working on a concept to tackle the second project's challenges while dealing with the constraints that rotorcraft missions on Mars provide us with. These are namely a limitation on the size and weight of the drone, a constraint on computational power due to the deployment on limited embedded processors and lastly a large delay in communication which makes adaptive remote control from Earth impossible.
 
 \section{Objective}
 
-The conclusive high level objective of the LORNA science concept is the achievement of long range safe navigation including global localization, safe landing site detection and full system autonomy. The navigation endeavor is tackled using a visual-inertial odometry state estimator which uses map based localization to achieve global localization as well. Landing site acquisition is achieved using structure from motion based 3D reconstruction and a multi resolution depth elevation map used for landing zone segmentation. Finally, a state machine-based autonomy framework orchestrates the entire procedural workflow.
+The conclusive high level objective of the LORNA science concept is the achievement of long range safe navigation including global localization, safe landing site detection and full system autonomy. The navigation endeavor is tackled using a laser-range-finder augmented visual-inertial odometry state estimator which uses map based localization to achieve global localization. Landing site acquisition is achieved using a structure from motion based 3D reconstruction of the terrain which is fed into the creation of a multi resolution dense elevation map used for landing zone segmentation. Finally, a state machine-based autonomy framework orchestrates the entire procedural workflow.
 
-The endeavor in this thesis was to create a front to back landing mechanism that combines the existing vision based landing site detection algorithm with the autonomy framework. In order to accomplish this, both the landing site detection algorithm and the autonomy had to be altered. Last but not least, given that the structure from motion depth generation depends on lateral movement, which is less desirable for a drone navigating at low altitudes in unfamiliar surroundings, the utilization of a stereo camera for low altitude 3D reconstruction presents a viable solution to attain real-time depth perception without necessitating lateral displacement.
+The endeavor in this thesis was to create a front to back landing mechanism that combines the existing vision based landing site detection algorithm with the autonomy framework. In order to accomplish this, both the landing site detection algorithm and the autonomy had to be altered. Last but not least, given that the structure from motion depth generation depends on lateral movement, which is less desirable for a drone navigating at low altitudes in unfamiliar surroundings, the utilization of a stereo camera for low altitude 3D reconstruction presents a viable solution to attain real-time depth perception without necessitating lateral displacement. A stereo camera is thus a light-weight solution which allows a drone to perceive depth statically as well as in vertical and lateral motion.
 
 \section{My Contribution}
 In this work, I established the interface between the vision based landing site detection algorithm and the autonomy framework in order to make informed landing decisions based on detected landing sites. A safe and efficient landing mechanism was implemented in the existing autonomy. This mechanism utilizes a novel stereo camera 3D reconstruction procedure to avoid lateral motion at low altitudes.
 
 \begin{itemize}
-    \item \textbf{Stereo Camera Depth Alternative}
+    \item \textbf{Stereo Camera Depth}
 
-    A stereo camera was implemented in the simulated drone model in order to get stereo sensor images. Additionally, a stereo camera depth node was put in place as an alternative to SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
+    A stereo camera was implemented in the simulated drone model in order to get stereo camera images. Additionally, a stereo camera depth node was put in place as an augmentation of SFM to supply the landing site detection algorithm with a point cloud at low altitudes without the need for lateral motion. 
 
-    An automatic switch was inserted between the SFM node and the stereo camera depth node by utilizing the laser range finder sensor on board. This allows for minimal computational overhead as only one depth creation node runs at a time.
-    % \item \textbf{Flight Analysis at 100m Altitude}
-    % The visual landing site detection pipeline has not been tested at 100m altitudes prior to this work. As LORNA plans to fly at this cruise altitude, the quality of the structure from motion point clouds as well as the LSD performance is mission critical and was therefore evaluated.
+    An automatic switch was inserted between the SFM node and the stereo camera depth node by utilizing the already present laser range finder sensor on board. This allows for minimal computational overhead as only one depth creation node runs at a time.
+
+    \item \textbf{Ground Truth}
+
+    A ground truth depth node was created for two reasons. First it allowed the validation of the stereo camera depth output. Second, having a perfect point cloud of the terrain, specific testing of the autonomous landing behavior itself was possible.
+
     \item \textbf{Autonomy LSD Interface and Landing Site Handling}
 
-    The landing site detection output initially only consisted of a site's location. This output was enhanced to consider many more characteristics in order for the autonomy to make a more informed decision in regard to what spot to select.
+    The landing site detection output initially only consisted of a one single site's location. This output was enhanced to utilize many more characteristics already present in the landing site detection algorithm in order for the autonomy to make a more informed decision in regard to what spot to select. These landing site properties are
+    
+    \begin{itemize}
+        \item Terrain roughness
+        \item Size
+        \item Terrain uncertainty
+        \item Detection altitude
+        \item Obstacle height
+    \end{itemize}
 
-    The autonomy was enhanced to correctly receive, sort and if necessary ban incoming landing sites based on their individual heuristic score and verification status
+    The autonomy framework was expanded to correctly receive and sort incoming landing sites based on their individual heuristic score. Additional landing site handling mechanisms like re-detection, verification and banishment were introduced.
     \item \textbf{Behavior Tree for Adaptive Decisions}
 
-    Using the existing behavior tree structure from the autonomy, an adaptive landing behavior was implemented. For this, the alteration of numerous existing actions as well as the addition of new action modules interacting with the landing sites was necessary. The implementation of the landing behavior in this way optimized for both safety and efficiency.
+    Using the existing behavior tree structure from the autonomy, an adaptive landing procedure consisting of both existing and novel actions was implemented. The implementation of the landing behavior optimized for both safety and efficiency.
     \item \textbf{Simulation Setup}
 
     As just recently the switch was made to Gazebo Garden the entire visual pipeline (SFM + LSD) had never run with this simulation environment before. Therefore, I implemented the changes necessary to run the landing site detection procedure on the Gazebo sensor input. 
@@ -50,17 +71,23 @@ In this work, I established the interface between the vision based landing site 
     As is custom, I will introduce the reader to what has been done in this area. Main focus will be placed on vision-based landing site detection procedures and previous work on autonomous landing. 
     \item \textbf{System Overview}
 
-    The entire project overview will be introduced. Emphasis lies on the methods that I have heavily interacted with in this thesis. These are mainly the structure from motion depth generation, the landing site detection mechanism and the autonomy framework.
+    The entire project architecture will be outlined. Emphasis lies on the methods that I have heavily interacted with in this thesis. These are mainly the structure from motion depth generation, the landing site detection mechanism and the autonomy framework.
     \item \textbf{Methodology}
 
-    Here I conceptually lay out the high level structure of the implemented work in this thesis. The two key contributions are introduced and their subtasks listed.
+    Here I conceptually lay out the high level structure of the implemented work in this thesis. The two key contributions stereo depth and autonomous landing are introduced as well as the ground truth used.
+
+    I will go into the reasoning of why a stereo camera is necessary as a low altitude depth alternative. Additionally, I analyze the stereo option theoretically and conclude its usage domain.
+
+    I explain the ground truth depth source used in this work both in order to compare stereo with and to test the autonomous pipeline without the possibility of insufficient depth information. Additionally, I analyze the ground truth's comparability to SFM to ensure adequate testing of the autonomous landing pipeline.
+
+    Lastly, I outline the prerequisites for the implementation of the autonomous landing behavior and introduce the methodology of the final implementation in the behavior tree structure of the autonomy.
 
     \item \textbf{Stereo Camera Depth Alternative}
 
-    This chapter introduces the stereo camera depth part of the methodology. I will go into the reasoning why a stereo camera is necessary as a low altitude depth alternative. Additionally, I analyze the stereo option theoretically and describe the process of implementing it in the existing project structure. Lastly it is qualitatively compared to a depth camera based ground truth.
+    This chapter elaborates on the stereo camera depth implementation. A coordinate frame overview is given and the entire process from sensor data handling to point cloud generation is discussed. Lastly it is qualitatively compared to a depth camera based ground truth.
     \item \textbf{Autonomous Landing Procedure}
     
-    Here I will lay out the core contribution of this project which combines the existing system with the novel contributions of this work in order to put together a front to back autonomous landing procedure. First I will describe the conceptual landing behavior and later on I explain the practical implementation. Lastly the working pipeline is shown in a case example of a science mission flown in simulation.
+    Here I will lay out the core contribution of this project which combines the existing system with the novel contributions of this work in order to put together a front to back autonomous landing procedure. First, I describe the interface between the autonomy and the landing site detection pipeline. Then I introduce the conceptual implementation of the landing procedure before I show its implementation in the form of a set of actions structured in a behavior tree. Lastly the working pipeline is shown in a case example of a science mission flown in simulation.
     \item \textbf{Evaluation}
 
     Here I introduce the test setup according to which I performed repeated randomized simulation flights. I introduce the outcome defining metrics and the results of the test flights. Lastly these results are analyzed numerically as well as visually considering the final choices of landing sites.

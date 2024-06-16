@@ -43,7 +43,7 @@ With these properties and estimating a subpixel-precision disparity error of 0.5
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.19]{images/preparation/stereo_limit.png}
+    \includegraphics[scale=0.24]{images/stereo_camera_depth/stereo_limit.png}
     \label{fig:stereo_limit}
 \end{figure}
 
@@ -61,7 +61,7 @@ Like Structure from Motion, the stereo depth instance is a ROS node which is giv
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.32]{images/preparation/stereo/drone_with_stereo_cam.png}
+    \includegraphics[scale=0.32]{images/stereo_camera_depth/drone_with_stereo_cam.png}
     \caption{Stereo camera on drone indicated by opaque boxes}
     \label{fig:drone_sim_setup}
 \end{figure}
@@ -112,41 +112,51 @@ The pose is only required for the transfer of the created points from the camera
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.3]{images/stereo_camera_depth/input_synchronization.png}
+\includegraphics[scale=0.26]{images/stereo_camera_depth/input_synchronization.png}
 \caption{Schematic visualization of input synchronization used in the stereo depth node}
 \label{fig:input_synch}
 \end{figure}
+\clearpage %HERE
 
 \subsection{Disparity Creation}\label{subsec:disparity_creation}
 
-The chosen StereoSGBM (Semi-Global Block Matching) algorithm creates a disparity map from two horizontally aligned images using the following process:
+The chosen StereoSGBM (Semi-Global Block Matching) algorithm creates a disparity map from two horizontally aligned images using an approach based on Heiko Hirschmüller's stereo approach introduced in \citep{Stereo}. 
+% TODO: explain the StereoSGBm algorithm
 
-% TODO: explain stereo algorithm
-\begin{itemize}
-    \item 
-\end{itemize}
+The resulting disparity image is shown in \cref{fig:stereo_disp}.
 
-% TODO: show disparity image output and note the cutoff which comes from OpenCV's stereo algorithm
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{images/stereo_camera_depth/stereo_disparity.png}
+\caption{Disparity image from the stereo camera using StereoSGBM.}
+\label{fig:stereo_disp}
+\end{figure}
 
+The StereoSGBM algorithm cuts off the left boundary as can be seen in \cref{fig:stereo_disp}. This is due to the maximum disparity parameter which prevents the pixels on the left border of the left image to be matched. As the left image is the reference image, the border is removed in the output. Additionally, artifacts could be seen on the right-hand side of the image. Both of these border artifacts were neglected using a mask.
 
 \subsection{Point Cloud Creation}
 
 Having created a disparity image using the approach laid out in \cref{subsec:disparity_creation}, the disparity pixels are first converted to the depth values using the classic disparity depth relation \ref{eq:depth_from_disp} shown in \cref{subsec:theoretical_analysis}.
 
-% TODO: show created depth image
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{images/stereo_camera_depth/stereo_depth.png}
+\caption{Stereo depth image}
+\label{fig:stereo_depth}
+\end{figure}
 
 From the created depth image, the pose and the camera parameters, the 3D locations of each detected point can be derived. This is done by simply tracing the projection line of the detected point as indicated in \cref{fig:line_projection} and using the similar triangles as shown in \cref{fig:similar_triangles}
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.35]{images/stereo_camera_depth/projection.png}
+\includegraphics[scale=0.25]{images/stereo_camera_depth/projection.png}
 \caption{Schematic of the line projection procedure to derive the 3D location of detected points}
 \label{fig:line_projection}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.35]{images/stereo_camera_depth/similar_triangles.png}
+\includegraphics[scale=0.25]{images/stereo_camera_depth/similar_triangles.png}
 \caption{Schematic of the line projection procedure to derive the 3D location of detected points}
 \label{fig:similar_triangles}
 \end{figure}
@@ -179,9 +189,18 @@ Where
     \label{eq:camera_point_vector}
 \end{equation}
 
-% TODO: get the rviz point cloud created
+The final point cloud created using this process is shown in \cref{fig:stereo_pc}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{images/stereo_camera_depth/stereo_pc.png}
+\caption{RViz visualization of stereo camera point cloud}
+\label{fig:stereo_pc}
+\end{figure}
 
 The final output of the node is a generated point cloud in the world frame together with two poses representing the camera locations of the generated point cloud.
+
+\clearpage %HERE
 
 \subsubsection{StereoSGBM vs StereoBM}\label{subsec:bmvssgbm}
 
@@ -189,12 +208,22 @@ Apart from the StereoSGBM implementation, OpenCV provides the StereoBM algorithm
 
 Implementing and comparing the two algorithms the following results were seen:
 
-% TODO: Image of SteroSGBM vs StereoBM
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.23]{images/stereo_camera_depth/stereoBM.png}
+\caption{LSD debug image when using the StereoBM algorithm}
+\label{fig:stereoBM}
+\end{figure}
 
-% TODO: replace analysis hereafter
-As can be seen in the above figure, StereoBM sometimes showed unsatisfactory point clouds. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital component of the pipeline, and thus, the quality must not be compromised. Therefore, StereoSGBM was retained as the algorithm of choice for the stereo depth creation.
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.23]{images/stereo_camera_depth/stereoSGBM.png}
+\caption{LSD debug image when using the StereoSGBM algorithm}
+\label{fig:stereoSGBM}
+\end{figure}
 
-
+As can be seen in the figures \cref{fig:stereoBM} and \cref{fig:stereoSGBM}, StereoBM did not in general perform bad. However, quite regularly, StereoBM produced erroneous points. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital component of the pipeline, and thus, the quality must not be compromised. Therefore, StereoSGBM was retained as the algorithm of choice for the stereo depth creation.
+\clearpage %HERE
 
 \subsection{Switching}\label{subsec:switching}
 
@@ -206,35 +235,42 @@ As mentioned in \cref{sec:state_estimator} the drone has a laser range finder on
 
 Therefore, the switching is performed by using a separate ROS subscriber which continuously checks the LRF's measurement and activates or deactivates the SFM node and stereo node respectively.
 
-\clearpage %HERE
-\begin{figure}
+\begin{figure}[h]
     \centering
-    \includegraphics[scale=0.17]{images/preparation/stereo/switching.png}
+    \includegraphics[scale=0.17]{images/stereo_camera_depth/switching.png}
     \caption{Laser Ranger Finder Based Switch between Depth Sources}
 \end{figure}
 
-% TODO also mention the start only after 30cm altitude because of too large baseline and insufficient FOV in the beginning so close above ground
+% A second application of this switching is to disable the stereo node until the drone reaches approximately 30 cm altitude. The reason for this is that in order to detect the depth of points about 30 cm away from the drone a disparity of about 85 pixels is necessary as shown in \cref{eq:min_depht}:
 
+% \begin{equation}
+%     d = \frac{f \cdot b}{z} = \frac{256 * 10cm}{30cm} = 85.333
+% \end{equation}
+
+% At 30 cm distance, this overlap is not given. Therefore 
+% With an image width of 640 pixels, a baseline of 10 cm and a focal length of 256 pixels we have a FOV of 102.68$\deg$. Therefore, the horizontal distance
+
+% TODO: finish the overlapping FOV calculation
 \subsection{Landing Site Detection without Lateral Motion}
 
 Taking off vertically with the drone in the simulation, the first landing site without lateral motion was found.
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.34]{images/preparation/stereo/ascent_sim.png}
+    \includegraphics[scale=0.34]{images/stereo_camera_depth/ascent_sim.png}
     \caption{Drone during vertical ascent in simulation}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.45]{images/preparation/stereo/stereo_pointcloud.png}
+    \includegraphics[scale=0.45]{images/stereo_camera_depth/stereo_pointcloud.png}
     \caption{RViz visualization of created point cloud from stereo camera}
 \end{figure}
 \clearpage %HERE
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.25]{images/preparation/stereo/lsd_ascent.png}
+    \includegraphics[scale=0.25]{images/stereo_camera_depth/lsd_ascent.png}
     \caption{LSD Debug output displaying LORNA's first detected landing site during vertical motion}
 \end{figure}
 
@@ -244,23 +280,22 @@ Once implemented the landing site detection instance could be supplied by the st
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.2, angle=-12]{images/preparation/reference_map2.5m_annotated.png}
+    \includegraphics[scale=0.2, angle=-12]{images/stereo_camera_depth/reference_map2.5m_annotated.png}
     \caption{Considered terrain patch in Gazebo simulation}
     \label{stereo_reference}
 \end{figure}
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/preparation/stereo_2.5m.png}
+    \includegraphics[scale=0.25]{images/stereo_camera_depth/stereo_2.5m.png}
     \caption{Stereo camera depth supplied LSD debug image at 2.5 m altitude}
     \label{qual_stereo_test}
 \end{figure}
 
-\clearpage %HERE
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/preparation/GT_2.5m.png}
+    \includegraphics[scale=0.25]{images/stereo_camera_depth/GT_2.5m.png}
     \caption{GT depth supplied LSD debug image at 2.5 m altitude}
     \label{stereo_GT}
 \end{figure}

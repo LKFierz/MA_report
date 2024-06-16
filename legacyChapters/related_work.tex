@@ -49,14 +49,14 @@ As it is supplied with monocular images from a nadir pointed camera it creates p
 
 \subsection{Landing Site Detection (LSD)}\label{subsec:related_work:LSD}
 
-The Landing Site Detection algorithm is comprised of two steps: 
+The Landing Site Detection algorithm is composed of two steps: 
 
 \begin{itemize}
     \item Depth Aggregation
     \item Landing Site Segmentation
 \end{itemize}
 
-Depth measurements are accumulated in a multi-resolution depth map. Initially as described in \citet{LSD1} the different layers represented an absolute base layer and relative residual layers in the higher resolution representations.
+Depth measurements are accumulated in a multi-resolution elevation map. Initially as described in \citet{LSD1} the different layers represented an absolute base layer and relative residual layers in the higher resolution representations.
 
 In \citet{LSD2} this was altered to only consider absolute measurements at each resolution layer. 
 

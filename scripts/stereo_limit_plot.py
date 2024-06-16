@@ -25,7 +25,7 @@ plt.figure(figsize=(10, 6))
 plt.plot(depth_errors, altitudes, label='Altitude vs. Depth Error')
 plt.xlabel('Depth Error [m]', fontsize=14)
 plt.ylabel('Altitude [m]', fontsize=14)
-plt.title('Stereo Depth Error at varying altitudes with b=9.2cm, f=256px, \u0394d=0.5', fontsize=14)
+plt.title('Flight altitudes possible for different depth errors with b=9.2cm, f=256px, \u0394d=0.5', fontsize=14)
 plt.legend()
 plt.grid(True)
 

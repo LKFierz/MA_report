@@ -2,13 +2,16 @@
 
 \cref{fig:lorna_setup} shows the high level architecture of the LORNA concept. 
 
-The xVIO state estimator uses the camera, IMU and laser range finder sensor onboard the vehicle in order to estimate the current state of the rotorcraft at any given time. Using map based localization (MBL) on HiRISE satellite maps allows for global localization. These poses are given to the flight controller and the output from that internal estimator is fed to the autonomy as well as the landing site detection nodes.
+The xVIO state estimator uses the camera, IMU and laser range finder sensor onboard the vehicle in order to estimate the current pose of the rotorcraft at any given time. Using map based localization (MBL) on HiRISE satellite maps allows for global localization. These poses are given to the flight controller and the output from that internal estimator is fed to the autonomy as well as the landing site detection nodes.
 
 As mentioned above, the rotorcraft is flown using a PX4 flight controller. It communicates with the autonomy framework using the MAVROS ROS wrapper for the MAVLink rotorcraft protocol. This connection is used for the transmission of waypoint information and the setting of parameters.
 
-The sensor images and their respective associated drone pose are given the landing site pipeline. In a first step, the 3D terrain is reconstructed using a structure from motion node. The reconstructed terrain is then given to the landing site detection algorithm(LSD) which first aggregates the information in a robot-centric multi resolution depth map and then segments valid landing sites on that. Detected landing sites are given to the autonomy to make the required adaptive landing decisions.
+The sensor images and their respective associated drone pose are given the landing site pipeline. In a first step, the 3D terrain is reconstructed using a structure from motion node. The reconstructed terrain is then given to the landing site detection algorithm(LSD) which first aggregates the information in a robot-centric multi resolution elevation map and then segments valid landing sites on that. Detected landing sites are given to the autonomy to make the required adaptive landing decisions.
 
-Not indicated in the graphic, as it is only used in a preparation step for the mission planning, is the QGroundControl ground station. In the developmental stages of the landing site pipeline, this serves as the mission planning and execution user interface. When using the autonomy however, it is not used. At the time of this work, the missions flown by the autonomy are prepared using a mission planner node introduced in \cref{subsec:sup_nodes}. This node uses exported QGC plans to create the missions for the autonomy framework. Therefore, it is used more so as a preparatory tool for the autonomy as opposed to a central part of the pipeline.
+The ground station QGroundControl is used for the creation of mission waypoints which are transferred to the autonomy using its mission planner support node introduced in \cref{subsec:sup_nodes}. Therefore, it is used more so as a preparatory tool for the autonomy as opposed to a central part of the pipeline. In the developmental stages of the landing site pipeline however, the drone can be flown without the autonomy. In such cases QGC serves as a user interface allowing the mission planning and parameter setting. 
+
+
+\clearpage %HERE
 
 \begin{figure}[ht]
     \centering
@@ -45,7 +48,7 @@ As the entire software stack of the LORNA project is dependent on ROS instead of
 
 \section{Landing Site Detection Pipeline}\label{sec:setup:LSP}
 
-The landing site detection pipeline consists of two nodes. A structure from motion node \citep{SFM} which creates a point cloud using a key frame based stereo depth approach on monocular images and a landing site detector algorithm \citep{LSD1, LSD2} which aggregates the depth measurements into a rolling buffer based multi-resolution depth map and segments landing sites on the created DEM. These found landing sites are then supplied to the autonomy. 
+The landing site detection pipeline consists of two nodes. A structure from motion node \citep{SFM} which creates a point cloud using a key frame based stereo depth approach on monocular images and a landing site detector algorithm \citep{LSD1, LSD2} which aggregates the depth measurements into a rolling buffer based multi-resolution elevation map and segments landing sites on the created DEM. These found landing sites are then supplied to the autonomy. 
 
 \subsection{Structure From Motion (SFM)}\label{subsec:setup:SFM}
 
@@ -97,21 +100,44 @@ Before doing 3D reconstruction, the poses are refined using a bundle adjustment 
 
 Having chosen adequate key frames and refined their poses, the crucial step of 3D reconstruction can be performed. For this, the key frames are checked to have an image overlap with the new image that is sufficient but not fully overlapping and to have a small enough baseline inclination so that assuming the same altitude above ground is reasonable. If the checks are successful, the key frame with the largest baseline to the new frame is chosen for the stereo procedure. 
 
-Using the two frames and the parallax distance between the detected features due to lateral motion between the images, the disparity values can be derived. With the camera's intrinsic parameters and the disparity values, a depth image of the terrain can be created. Then, using these depth values of the individual and the camera parameters, the 3D coordinates of each detected point can be calculated, and thus the depth image is converted into a point cloud which is the format required for LSD.
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.28]{images/system_overview/sfm_images.png}
+\caption{Left and right key frame image selected for SFM depth}
+\label{fig:sfm_images}
+\end{figure}
 
-% TODO images of terrain and depth image created
+\cref{fig:sfm_images} shows a selection of such key frames to perform stereo on. Not the visible rectification in the left reference image which has been rotated slightly in order to enable horizontal feature matching.
 
+Using the two frames and the parallax distance between the detected features due to lateral motion between the images, the disparity values can be derived. With the camera's intrinsic parameters and the disparity values, a depth image of the terrain can be created. A color coded example thereof is shown in \cref{fig:sfm_depth_image} where red points are closer and blue ones further away from the camera sensor.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.45]{images/system_overview/sfm_depth_image.png}
+\caption{SFM depth image created from the stereo approach}
+\label{fig:sfm_depth_image}
+\end{figure}
+
+Then, using these depth values of the individual and the camera parameters, the 3D coordinates of each detected point can be calculated, and thus the depth image is converted into a point cloud which is the format required for LSD. The RViz visualization of such a point cloud is shown in \cref{fig:sfm_point_cloud}.
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.2]{images/system_overview/sfm_depth_map.png}
+\caption{SFM point cloud visualization in RViz}
+\label{fig:sfm_point_cloud}
+\end{figure}
 
 \subsection{Landing Site Detection (LSD)}\label{subsec:setup:LSD}
 
 \subsubsection{Depth Aggregation}\label{subsubsec:setup:aggregation}
 
-The foundation of the landing site detection mechanism is a rolling buffer based multi resolution depth map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
+The foundation of the landing site detection mechanism is a rolling buffer based multi resolution elevation map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
 
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.25]{images/system_overview/DEM.png}
-    \caption{Multi resolution depth map as displayed in \citep{LSD1}}
+    \caption{Multi resolution elevation map as displayed in \citep{LSD1}}
     \label{fig:DEM}
 \end{figure}
 
@@ -183,16 +209,16 @@ Lastly, their positions are refined by applying a mean shift algorithm for a few
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/system_overview/lsd_debug_reference.png}
-    \caption{Gazebo Simulation Reference}
-    \label{fig:lsd_debug_ref}
+    \includegraphics[scale=0.25]{images/system_overview/lsd_debug_image.png}
+    \caption{LSD Debug Image - Left: DEM, Middle: Uncertainties, Right: LS Map}
+    \label{fig:lsd_debug} %Replace with SFM LSD image here
 \end{figure}
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/system_overview/lsd_debug_image.png}
-    \caption{LSD Debug Image - Left: DEM, Middle: Uncertainties, Right: LS Map}
-    \label{fig:lsd_debug} %Replace with SFM LSD image here
+    \includegraphics[scale=0.25]{images/system_overview/lsd_debug_reference.png}
+    \caption{Gazebo Simulation Reference}
+    \label{fig:lsd_debug_ref}
 \end{figure}
 
 The landing site detection debug image is a good comprehensive visualization of the landing site detection algorithm. 
@@ -256,7 +282,7 @@ The landing site manager's site processing is depicted in \cref{fig:lsm_ls_proce
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.3]{images/system_overview/lsm_handling.png}
+\includegraphics[scale=0.165]{images/system_overview/lsm_handling.png}
 \caption{Landing site handling from detection to sorted position in the landing site manager: A landing site indicated with a green circle is detected by LSD and given to the autonomy with the location property. The landing site manager assigns the site a heuristic value based on the location and sorts it in the buffer array.}
 \label{fig:lsm_ls_processing}
 \end{figure}

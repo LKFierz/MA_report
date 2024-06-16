@@ -9,7 +9,6 @@ At low altitudes SFM works as well but surrounded with obstacles, the need for l
 
 To overcome this issue, a range sensor can be used. As LiDAR might come to mind. However, a LiDAR sensor produces rather sparse point clouds unless a newer sensor like for instance Ouster's OS1-128 sensor is used. In that case, there remains the weight issue with the sensor's 495g. As the drone is going to fly on Mar's very thin atmosphere, this isn't feasible. 
 
-%TODO: Other depth sensors?
 Staying with the project's theme of visual sensors, a stereo camera poses a solution as it offers in-place triangulation with a very low weight ($\tilde 10g$). Therefore, in this thesis I present a stereo camera range node implementation to remedy the shortcomings at low altitudes.
 
 % This is because the drone does not retain any hazard information past the knowledge of detected landing sites and terrain knowledge from either HiRISE, Ingenuity or the rover which is implicitly used for the mission creation. Therefore, it could be said that the drone flies blindly with respect to obstacles. 
@@ -17,6 +16,15 @@ Staying with the project's theme of visual sensors, a stereo camera poses a solu
 \section{Stereo Camera}
 
 The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model, and setting the parameters to equal the hardware, results in the desired outcome.
+
+The simulated camera sensors used for this had the following properties:
+
+\begin{itemize}
+    \item Image width: 640 pixels
+    \item Image height: 480 pixels
+    \item fx: 256px
+    \item fy: 256px
+\end{itemize}
 
 The input to the stereo camera depth node are the two camera images and the drone's base link pose. Processing this information is different from for the existing SFM algorithm. Therefore, a new depth generation node was put in place. 
 
@@ -78,19 +86,20 @@ The depth camera creates the image using traced rays which fill a pixel with the
 
 As expected, the ground truth point clouds yielded very clean and easily interpretable LSD DEMs:
 
-\begin{figure}[ht]
+\begin{figure}[h]
 \centering
 \includegraphics[scale=0.25]{images/methodology/lsd_debug_image.png}
 \caption{LSD debug image using a GT point cloud}
 \label{fig:gt_lsd_debug}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[h]
 \centering
 \includegraphics[scale=0.25]{images/methodology/lsd_debug_reference.png}
 \caption{LSD debug image simulation terrain reference}
 \label{fig:gt_lsd_debug_reference}
 \end{figure}
+\clearpage %HERE
 
 \subsection{Comparability to SFM}
 
@@ -98,33 +107,41 @@ This is sufficient for a qualitative analysis of the stereo depth node. However,
 
 For this, the following test was designed.
 
-On a flat textured plane, three cylinders of different sizes were placed. On each cylinder a small rock of 10 cm diameter was placed. The drone was then flown over the test setup to detect the scene once with SFM and once using the GT depth. The goal was to find out, whether the ground truth depth quality would have to be artificially decreased, using Gaussian or median filtering for instance, in order to make it more comparable to SFM.
+On the Arroyo map, three cylinders of different sizes were placed. On each cylinder a small rock of 10 cm diameter was placed. The drone was then flown over the test setup up 100 m altitude to detect the scene once with SFM and once using the GT depth. The goal was to find out, whether the ground truth depth quality would have to be artificially decreased, using Gaussian or median filtering for instance, in order to make it more comparable to SFM.
 
 \begin{figure}[ht]
 \centering
-\includegraphics[scale=0.18]{images/methodology/Test.png}
-\caption{GT test setup: Rocks of 10 cm diameter where placed on platforms of different sizes to be detected by both the ground truth and SFM}
-\label{fig:gt_test_setup}
+\includegraphics[scale=0.3]{images/methodology/test_setup1.png}
+\caption{GT test setup1: Three cylinders of different sizes (4, 2 and 1 m diameter) were placed on the map}
+\label{fig:gt_test_setup1}
 \end{figure}
 
 \begin{figure}[ht]
 \centering
-\includegraphics[scale=0.14]{images/methodology/GT.png}
+\includegraphics[scale=0.18]{images/methodology/test_setup2.png}
+\caption{In the middle of each cylinder a rock of 10 cm diameter was placed}
+\label{fig:gt_test_setup2}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.22]{images/methodology/GT.png}
 \caption{Ground truth result of the GT test}
-\label{fig:gt_test_gt} %TODO replace test images
+\label{fig:gt_test_gt} 
 \end{figure}
 
 \begin{figure}[ht]
 \centering
-\includegraphics[scale=0.14]{images/methodology/SFM.png}
+\includegraphics[scale=0.22]{images/methodology/SFM.png}
 \caption{SFM result of the GT test}
 \label{fig:gt_test_sfm}
-\end{figure} %TODO redo this test and get better images
+\end{figure} 
 
 Looking at \cref{fig:gt_test_gt} and \cref{fig:gt_test_sfm}, one can see, that, though the SFM quality is visibly worse, neither SFM nor GT detected the small rocks on the platforms. This can be seen because in both Debug images the center of the platforms was considered a landing site even though there was the rock which should definitely prevent the detection of a valid landing site.
 
 Therefore, the ground truth depth could be used for the testing of the autonomous landing pipeline without making a landing site verification step at low altitudes redundant.
 
+\clearpage %HERE
 \section{Autonomous Landing Procedure}
 
 Having implemented a stereo camera as a low altitude alternative to SFM, and after ensuring a correct ground truth comparison, the main contribution of this work could be tackled: Bringing the visual landing site pipeline together with the autonomy framework in order to achieve reliable autonomous landing in unknown terrain.
