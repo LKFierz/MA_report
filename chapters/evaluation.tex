@@ -9,13 +9,13 @@ Though very well performing when initialized successfully at low to mid-altitude
 
 
 
-\section{Experimental Setup}
+\section{Experimental Setup}\label{sec:exp_setup}
 
 The pipeline was tested by repeatedly flying a mission with randomized initial conditions.
 
 The performed experiments were flown on the following two maps:
 \begin{itemize}
-    \item Arroyo Map - Prerecorded Gazebo map from the Arroyo Seco area outside the East entrance of the Jet Propulsion Laboratory.
+    \item Arroyo Map - Map from the Arroyo Seco area outside the East entrance of the Jet Propulsion Laboratory. Predominantly used map during development
     \begin{figure}[h]
         \centering
         \includegraphics[scale=0.5]{images/evaluation/arroyo.png}
@@ -25,8 +25,9 @@ The performed experiments were flown on the following two maps:
         \centering
         \includegraphics[scale=0.23]{images/evaluation/arroyo_map.png}
         \caption{Close Up of the Arroyo Map}
+        \label{fig:sim_view_arroyo}
     \end{figure}
-    \item Rough Test Map - A control environment designed to prevent LSD from detecting any landing site unless a landing platform is specifically spawned. 
+    \item Rough Test Map - A control environment designed to prevent LSD from detecting any landing site unless a landing platform is specifically spawned. It was created using blender and applying white noise perturbations to the elevation of a plane. Note that there is no texture projected onto the terrain. Therefore, on this map only ground truth was used.
     \begin{figure}[h]
         \centering
         \includegraphics[scale=0.285]{images/evaluation/rough_test_map.png}
@@ -64,12 +65,31 @@ The drone was either spawned repeatedly from a default location on the ground (T
 As mentioned in \cref{sec:sfm_lsd_eval}, at the time of this work SFM was very fragile as an individual module. Because of this and to evaluate the merged pipeline as opposed to the depth generation module, ground truth depth was used at high altitudes unless specified otherwise. Regardless of whether ground truth or SFM was used, the verification at low altitudes was always performed using the point clouds from the stereo camera depth node.
 
 \subsection{Success Conditions}
-To determine whether a flight was successful or not, two main metrics were considered. First, whether the landing action in the autonomy was initiated (this happens only after the landing site selection and verification were both successful) and secondly to infer the safety of the rotorcraft, a rosbag was collected and analyzed to check whether either the roll or pitch value exceeded the crash threshold.
+To determine whether a flight was successful or not, two main metrics were considered. First, whether the landing action in the autonomy was initiated (this happens only after the landing site selection and verification were both successful) and secondly to infer the safety of the rotorcraft, a rosbag was collected and analyzed to check whether either the roll or pitch value exceeded the crash threshold. In practice, a threshold of 1.2 radians or shortly below 70\degree proved to be an accurate decision boundary to detect a drone crash.
 
-\textbf{Note: } In practice a threshold of 1.2 radians or shortly below 70\degree proved to be an accurate decision boundary.
+\subsubsection{Home Landings}
+The drone lands at the home position in the two following cases:
+\begin{itemize}
+    \item No landing sites exist to be chosen.
+
+    This happens when very few landing sites were detected yet failed verification and were therefore banned or when no landing sites were detected in the first place. 
+
+    The latter case occurs in two scenarios: 
+    \begin{itemize}
+        \item The overflown terrain simply does not have a single landing site of decent quality. (see the rough map introduced in \cref{sec:exp_setup})
+        \item The landing site detection algorithm failed to detect landing sites.
+    \end{itemize}
+    In both scenarios, going home is the desired behavior. However, if LSD does not detect landing sites, the run cannot be counted as a success regardless of whether the drone landed safely after taking off.
+
+    Looking at the Arroyo map shown in \cref{fig:sim_view_arroyo} and speaking from development experience, sufficient landing sites should be found on this map. Therefore, landing at home when flying on the Arroyo indicates a landing site pipeline issue.
+    \item A landing site is chosen at the home position.
+
+    This is possible as the stereo camera detects landing sites on the takeoff location when ascending. However, given that the last mission waypoint is sufficiently far away from the takeoff location, the drone should land at a closer location. 
+\end{itemize}
+
 
 \subsection{Visual Analysis}
-To further analyze the randomized flights in a bit more detail, visual landing attempt projections are used:
+To further analyze the randomized flights in a bit more detail, visual landing attempt projections are used. Such an analysis image is shown in \cref{fig:landing_attempts_dummy}.
 
 \begin{figure}[h]
     \begin{center}
@@ -79,11 +99,15 @@ To further analyze the randomized flights in a bit more detail, visual landing a
     \end{center}
 \end{figure}
 
-The green points indicate successful verifications which lead to the initiation of the landing action shortly after. (If no rotation above a failure threshold was detected, this is considered a success.) 
+The green points indicate successful verifications which lead to the initiation of the landing action shortly after. (If no rotation above a failure threshold was detected, this is considered a successful landing.) 
 
-The yellow points are landing attempts, where a chosen landing site was not verified and thus banned from further consideration. It is crucial to note that this is perfectly correct behavior. Landing sites detected at high altitudes merely provide a preliminary indication of potential landing zones.  It is the subsequent phase, responsible for verifying these sites, that identifies the most promising areas for landing. So selecting a landing site, attempting to verify it but failing to do so and subsequently choosing a close by landing site detected at this low verification altitude might even be called the most promising chain of actions in the pursuit of autonomous landing.
+The yellow points are landing attempts, where a chosen landing site was not verified and thus banned from further consideration. It is crucial to note that not being able to verify a landing site is no issue at all. Landing sites detected at high altitudes merely provide a preliminary indication of potential landing zones. It is the subsequent phase, responsible for verifying these sites, that yields the refined final landing site knowledge used for landing. So selecting a landing site at high altitude, not being able to verify it and subsequently choosing a close by landing site detected during verification might even be called the most promising chain of actions in the pursuit of autonomous landing.
 
-Lastly, blue points indicate successful landings at the home position. When flying on a map with obvious landing opportunities, landing at the home position indicates an issue with the landing site detection mechanism. This is because the rotorcraft will only settle at the home position if no other landing site, regardless of quality, is currently available and the maximum number of additional landing site search excursions (\ref{subsec:actn_def}) have been performed.
+Lastly, blue points indicate successful landings achieved through the trigger of the landing-at-home action. As previously mentioned, When flying on a map with obvious landing opportunities, triggering the landing-at-home action indicates an issue with the landing site detection mechanism.
+
+In the case of multiple attempts at verifying a landing site, connection lines are drawn between the failed attempts and the final landing indicating which subsequent sites were chosen.
+
+% TODO: maybe add the circles of spawn and home and describe them
 
 \subsection{Off Board Mode connection Issues}
 As will be presented in the following, connection failures between the PX4 flight controller and the autonomy occurred, leading to the deactivation of the off board mode and therefore the loss of control of the autonomy over the rotorcraft. These issues arose most likely because the MAVROS connection in between failed to send a necessary heartbeat repeatedly and thus the connection was intercepted.

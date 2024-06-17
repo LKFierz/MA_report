@@ -32,7 +32,7 @@ As the state estimator and the map based localization were not fully implemented
 Since this thesis focuses on the integration of existing software instances, it is essential to delve into each component and elucidate their operational mechanisms.
 
 \clearpage %HERE
-\section{Simulation}
+\section{Simulation}\label{sec:simulation}
 
 In this work I almost exclusively used a drone simulation. This allowed for a facilitated development with respect to both speed and safety. The choice of simulator, which is Gazebo Garden, was made prior to this work during the development of the autonomy.
 
@@ -44,6 +44,15 @@ In this work I almost exclusively used a drone simulation. This allowed for a fa
 
 
 As the entire software stack of the LORNA project is dependent on ROS instead of ROS2, a bridge was used to convert the sensor information from Gazebo to ROS2 and from ROS2 to a ROS topic.
+
+Most development during this work was performed on the Arroyo map shown in \cref{fig:arroyo_intro}. The Arroyo Seco is the area outside the Jet Propulsion Laboratory in Pasadena, California. Though, not a strikingly similar to Mars' landscape at first glance, the Arroyo contains varying terrain including small rocks and uneven ground which makes it a good test ground for UAV Mars landing applications.
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.45]{images/evaluation/arroyo.png}
+    \caption{Gazebo map of the Arroyo Seco area outside JPL at 4 cm per pixel}
+    \label{fig:arroyo_intro}
+\end{figure}
 
 
 \section{Landing Site Detection Pipeline}\label{sec:setup:LSP}
