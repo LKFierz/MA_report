@@ -1,12 +1,12 @@
 \chapter{Evaluation}
 \label{chapter:evaluation}
 
+
+
 \section{SFM Insufficiencies}\label{subsec:sfm_insufficiencies}
 SFM is part of the LORNA pipeline and proofed to be a valid option for the endeavor tackled by LORNA. Prior to this work however, it was never tested extensively, especially at high altitudes (100 m).
 
 Though very well performing when initialized successfully at low to mid-altitudes, SFM often had issues during startup and showed frequent insufficiencies when the drone rotated or when switching the key frames used for the stereo at high altitudes.
-
-
 
 
 \section{Experimental Setup}\label{sec:exp_setup}
@@ -114,7 +114,7 @@ As will be presented in the following, connection failures between the PX4 fligh
 
 Self-evidently, this did not result in a successful landing and was not counted as such. However, as these connection issues did not occur due to insufficiencies in the pipeline presented in this work, they were not considered failures of the pipeline either.
 \clearpage
-\section{Test Flights}
+\section{Test Flights}\label{sec:test_flights}
 \subsection{Arroyo - Randomized Waypoints}\label{subsec:eval_rand_wp}
 
 When starting 100 times from the fixed position indicated in \cref{fig:fixed_start} and flying to random mission waypoints at 100 m altitude in a 70x70m vicinity on the Arroyo map, the following results were achieved:
@@ -370,4 +370,42 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     
     Each landing site selected was verified. This convincing result is not surprising as the inserted landing sites are perfect landing sites and are therefore unlikely to trigger a verification failure.
 
+\section{Theoretical Edge Cases}
+\cref{sec:test_flights} shows that the implemented landing procedure performs well only terrain that is roughly comparable to that on Mars. These tests represent rather ordinary cases though. In the following, a number of theoretical edge cases are introduced and their handling by this work's pipeline discussed.
 
+\subsection{Arrival on Mars}
+One concept for the rotorcraft arrival on Mars is its takeoff during the descent of the main payload. In the Mars Sample Return mission which has since been aborted for instance, this payload would have been the landing platform to return the Mars samples to. From that lander the rotorcraft would take off mid-descent and land on its own.
+
+Playing this scenario through, a small mission or pattern needs to be flown in order to move laterally and thus detect landing sites. Additionally, as the platform from which we took off is descending with neck-breaking velocity, we need to consider a different location for the choice of our home position. This can be done prior to the flight using a mixture of HiRISE orbiter images and information provided by Opportunity and Ingenuity. The ladder two options also ensure a sufficient image resolution to safely determine a home position.
+
+In case of successful landing site detection during this mission, the landing procedure is initiated as usual. If no candidates for suitable landing areas were found however, further landing site search patterns at random locations are flown. If the landing site buffer remains empty still, the aforementioned synthetic home position is navigated to and landed at.
+
+\subsection{Flying on Large Scale Inclined Terrain}
+The tests performed all happened on generally even terrain with rough and inclined areas spread throughout. What happens however, when we want to fly the drone over large scale inclined terrain? An example of this could be flying out of the Jezero crater which is where the Opportunity rover was deployed.
+
+In this case, the necessary precautions must be taken during the mission planning stage. Assuming a mission was created at a cruise altitude high enough to allow lateral traversal to the farthest mission waypoint without danger of collision, the landing behavior would be the same. 
+
+Two possible break points exist however:
+
+\begin{itemize}
+    \item Lack of number and quality of landing sites
+
+    On inclined terrain fewer landing sites are detected. Secondly, a blind spot of the pipeline are unstable landing sites like larger rocks. Though the probability of landing on such a rock and thus making it fall over are very small, they exist. Even more so on inclined terrain.
+
+    \item Collision danger when flying LS search patterns
+
+    The mission waypoints are set deterministically. Therefore, the terrain can be accounted for during their creation. 
+    
+    This is not the case for the random flight patterns execute when no landing sites are available. The center point of a rectangular search pattern is set randomly at a fixed distance from the location where the action was invoked. If during the mission a landing site was found at a very high altitude and turned out to be a false candidate, the LS search is initiated at that location. This case is schematically depicted in \cref{fig:search_pattern_collision}. Note how the found landing site was detected at a significant distance from the last mission waypoint. 
+
+    \begin{figure}[h]
+        \centering
+        \includegraphics[scale=0.35]{images/evaluation/search_pattern_collision.png}
+        \caption{Break case of landing site search pattern. The black dot indicates the last mission waypoint at cruise altitude. The bright green circle with the red cross show an invalid landing site and the circle above the drone shows the possible center points of search patterns.}
+        \label{fig:search_pattern_collision}
+    \end{figure}
+\end{itemize}
+
+One more break case for the presented pipeline is overhanging terrain. In that case the ascent to a clearing altitude does not constitute a safe approach.
+
+It has to be noted that the exploration of terrain as advanced as overhanging ground and cave systems is not considered part of the LORNA endeavor.

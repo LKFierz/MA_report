@@ -108,11 +108,13 @@ Apart from the new heuristics and the handling thereof, the following important 
 
 In the LSM's state before this thesis, each landing site was considered individually and processed. The worst landing site according to the heuristic was filtered out, and the new landing site was put in its place and then ordered into the min heap.
 
-Re-detection defines the mechanic of assessing the proximity of an incoming landing site to the already considered landing sites in the buffer. If an incoming landing site is close enough to a previously detected site, this is considered a re-detection. In that case, the new landing site is not entered into the buffer but instead, the previously detected landing site has its properties updated.
+Re-detection defines the mechanism of assessing the proximity of an incoming landing site to the already considered landing sites in the buffer. If an incoming landing site is close enough to a previously detected site, this is considered a re-detection. In that case, the new landing site is not entered into the buffer but instead, the previously detected landing site has its properties updated.
 
-However, this property update is only performed, when the incoming landing site's was detected at a lower flight altitude. Expressed in specific terms this means, that the landing site is only updated if the incoming landing site's verification altitude is lower than the previously detected one. This is because, more trust is given to the landing sites detected at a closer distance. 
+However, this property update is only performed, when the incoming landing site's was detected at a lower flight altitude. Expressed in specific terms this means, that the landing site is only updated if the incoming landing site's verification altitude is lower than the previously detected one. This is because, more trust is placed onto landing sites detected at a closer distance to the ground. 
 
 The benefit of the update of the characteristics lies in the refinement of the site's information and therefore the retention of a higher quality landing site candidate.
+
+The proximity within which an incoming site is considered a re-detection of another is determined by a linear interpolation. At 100 m altitude any landing site within a 1 m distance to another is considered the same site. At the verification altitude which was set to 2.5 m during this work, the re-detection distance is 0.1 m. This change of threshold implicitly accounts for the larger terrain errors made at higher altitudes. 
 
 The schematic re-detection procedure is shown in \cref{fig:ls_redetection}.
 
@@ -231,7 +233,7 @@ The autonomy framework already defined the core control flow nodes as well as so
     Simple utility action which checks whether any landing sites have been found by querying the LSM's landing site buffer length.
     \item ChangeAltitudeLSAction
 
-    This action was implemented with the purpose to allow us to descend to a certain fixed altitude above a chosen landing site. The creation of another action for this purpose is simply a utility which lets us avoid having to pass a function pointer in the action definition as the arguments passed in a behavior tree are always evaluated at the time of the creation.
+    This action was implemented with the purpose to allow us to vertically move to a certain fixed altitude above a chosen landing site. This allows the drone to easily get to a predefined safe altitude at which it traverses to a found landing site.
     \item GetLandingSiteAction
 
     Upon leaving the mission state and entering the landing state, the autonomy attempts to select the currently best landing site according to the in \cref{subsubsec:LandingSiteHeuristic} introduced loss function.
@@ -289,7 +291,7 @@ The autonomy framework already defined the core control flow nodes as well as so
 
     The drone picks a random position around the final mission waypoint, flies there and again moves laterally in a rectangle shape in the hope of detecting landing sites.
 
-    Note: This procedure is repeated a fixed number of times using the retry control node described in \cref{subsubsec:decorator_nodes}. Optimally however, this would be performed as long as the battery state permits it. 
+    Note: In case that this action and the subsequent landing site search fail to detect any landing sites, they are repeated as often as the battery state permits it and the drone has to return to the home position.
     \end{itemize}
 
     \begin{figure}[h]
