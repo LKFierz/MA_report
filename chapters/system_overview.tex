@@ -90,7 +90,7 @@ Therefore, if these two conditions are fulfilled, a new frame is accepted in the
     The maximum rectangle spanning all features is derived for both frames. Due to parallax from lateral motion, they don't overlap allowing to determine the area ratio of the feature span overlap.
 \end{itemize}
 
-If these three metrics lie above a certain threshold, the key frames are considered good and only the newest key frame is exchanged, retaining all others. If not, the new frame is added to the back, pushing the rolling buffer further, leading to the loss of the oldest previous key frame.
+If these three metrics lie above a certain threshold, the key frames are considered good and only the newest key frame is exchanged, retaining all others. If not, the new frame is added to the back, pushing the rolling buffer further, leading to the loss of the oldest previous key frame. 
 
 \subsubsection{Bundle Adjustment}
 
@@ -105,9 +105,11 @@ Before doing 3D reconstruction, the poses are refined using a bundle adjustment 
 
 \cref{fig:BA} shows the change in reprojection, which the bundle adjustment optimization technique thrives to diminish. Generally, it does so by considering a number of key frames and optimizing their poses as well as the camera parameters used to acquire the images. In this case, only the pose refinement is considered for the key frames in question.
 
-\subsubsection{Stereo Depth}
+\subsubsection{Stereo Depth}\label{subsubsec:SFM_stereo}
 
 Having chosen adequate key frames and refined their poses, the crucial step of 3D reconstruction can be performed. For this, the key frames are checked to have an image overlap with the new image that is sufficient but not fully overlapping and to have a small enough baseline inclination so that assuming the same altitude above ground is reasonable. If the checks are successful, the key frame with the largest baseline to the new frame is chosen for the stereo procedure. 
+
+Note that if all key frames comply with these checks than always the oldest key frame is used for the stereo depth creation. Therefore, in practice the reference view for the depth image is the oldest key frame for a few iterations until the overlap with the new image is too small, and the oldest key frame is switched out. This results in a small jump of the depth image's reference location. 
 
 \begin{figure}[h]
 \centering
@@ -163,6 +165,9 @@ Each point cloud input iteration, a depth measurement and the associated stereo 
 In a subsequent step the measurements are pooled up to the top layer and down again in order to make the DEM more consistent and interpolate missing values. The same result could be achieved by entering each measurement individually and directly pooling it up and down the cells that cover its footprint. However, splitting the procedure into a step that acquires all measurements and second task that collectively pools all cells, achieves the same with fewer updates.
 
 Similar to Kalman filters, the OMG cells' uncertainties improve over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. 
+
+% When an incoming point cloud comes from a camera pose which yields less than 95\% theoretical image overlap with the previous location, a map shift of the rolling buffer is performed. This shift is implemented as the clearing of the rows and columns no longer necessary and a shift of the starting index for further images. This implementation allows the movement of the map without the need to reassign filled cells. 
+%TODO: make schematic image of this or don't put this in the report
 
 \subsubsection{Hazard Segmentation}\label{subsubsec:setup:haz_seg}
 

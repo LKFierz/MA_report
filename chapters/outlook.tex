@@ -1,14 +1,54 @@
 \chapter{Outlook}
 \label{sec:outlook}
-%TODO think about this structure again.
+
+\section{Resolving Prerequisites}
+
+Before putting together the entire LORNA pipeline shown in \cref{fig:lorna_setup}, the fundamental building blocks need to work well. 
+
+First and foremost, the entire LORNA approach builds upon the foundational depth acquisition using structure from motion. This method needs to work robustly during any kind of lateral motion. Specifically, SFM needs to be more robust with respect to yaw rotations and pitch angles during initialization.
+
+Not crucial for this thesis but a necessary component for the LORNA pipeline is the map based localization algorithm which reduces global drift of the state estimator. This node was still in development as well during the time of this writing and would need to be made ready in order to finish the whole LORNA mission concept.
+
 \section{Putting together the current pipeline}
 
-First and foremost, the entire LORNA approach builds upon the foundational depth acquisition using structure from motion. This method needs to work robustly during any kind of lateral motion.
+Given that SFM works as desired, the pipeline can be put together. 
 
-Given that SFM works as desired, the state estimator can be combined with LORNA's vision based pipeline and deployed on the embedded hardware in order to fly safe long distance science missions on Mars. 
+The state estimator can be combined with LORNA's vision based pipeline as well as the autonomy framework and deployed on the embedded hardware to supply the process with on-board pose estimates as opposed to ground truth. 
 
-Stereo and SFM could become one node where the laser range finder activates and deactivates the nodes based on the detected altitude.
+The question about computational feasibility on the embedded processor will arise, and a decision will have to be made on the processing unit.
 
 \section{Expansion on the current approach}
 
-%TODO
+This project endeavors to fly science missions on Mars with on board state estimation and autonomous landing capabilities. Naturally this mission could be expanded in various domains to interact more with the environment. However, in the following I will lay out possible enhancements for this approach in pursuit of the currently pronounced objectives.
+
+\textbf{SFM}
+
+To make the key frame switch and the associated LSD map movement less radical, it might be beneficial to change the key frame selection approach to always switch out the key frames as long as incoming frames are above a certain quality threshold. This would lead to more frequent yet smaller map movements which would allow LSD to retain most of the map at a time and therefore many more landing sites.
+
+A possible change to slightly increase computational efficiency and ease of understanding would be the inclusion of the stereo camera node within the SFM node. In this case the laser range finder measurements would decide between the two algorithms to be performed. That way there is only one depth supplying node which needs to be run during flight.
+
+\textbf{LSD}
+
+As indicated in \cref{sec:eval_LSD}, LSD is currently neglecting most of the information present at high altitudes. An alternative implementation to counteract this would be to consider different map sizes at the different layers. That way, the high resolution layers can retain detailed elevation information at the center of the DEM while the coarsest layers span a much larger area. When pursuing this implementation however, the information pooling for DEM consistency across the layers would not be as straight forward.
+
+\textbf{Autonomy}
+
+The modular architecture of the autonomy allows for a manifold of incremental optimizations of the behavior. A few that come to mind are listed hereafter:
+
+\begin{itemize}
+    \item A possible enhancement of the autonomy is the introduction of path planning capabilities. The detected landing sites give an indication of flat, benign terrain and could therefore be used as a prior indication of safely traversable terrain. This knowledge could be used to decrease the necessary safety buffer of the clearing altitude and thus save time and energy ascending to excessive heights.
+    \item Instead of pursuing a single landing site, clusters of potential sites could be considered for initial deployment. That way, less weight is placed on the first site pursued in favor of an increased chance of detecting a high quality landing site on the second attempt.
+    \item Furthermore, the weighing of the different properties entering the heuristic of a landing site is alterable. This should be used to change the weight distribution of these characteristics depending on the battery level. For instance, the distance to the drone could be weighed higher in case of a low batter level.
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+

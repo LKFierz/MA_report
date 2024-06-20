@@ -14,3 +14,4 @@
 {"rule":"AFFORD_VBG","sentence":"^\\QRotorcraft hovering on top of landing site and trying to re-detect chosen landing site Final Landing Action.\\E$"}
 
 {"rule":"AFFORD_VBG","sentence":"^\\QThis action was implemented with the purpose to allow us to vertically move to a certain fixed altitude above a chosen landing site.\\E$"}
+{"rule":"ENGLISH_WORD_REPEAT_RULE","sentence":"^\\QLanding attempts rough map with platform covering mission LS landing Landing on first attempt 2 attempts 3 attempts 99 98 1 0\\E$"}

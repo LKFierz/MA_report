@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # Fixed parameters
 baseline = 0.092  # meters
-focal_length = 256  # pixels
+focal_length = 275.42  # pixels
 disparity_error = 0.5  # pixels
 
 def calculate_altitude(depth_error, baseline, focal_length, disparity_error):
@@ -44,5 +44,5 @@ plt.axvline(x=target_depth_error, color='black', linestyle='--', linewidth=1)
 plt.axhline(y=target_altitude, color='black', linestyle='--', linewidth=1)
 
 # Show the plot
-plt.savefig("/Users/lfierz/Documents/studium/master/MA/RSL/Report/plots/stereo_limit.pdf")
+plt.savefig("C:/Users/fierz/Documents/LF/studium/Master/master_thesis/RSL/Report/plots/stereo_limit.pdf")
 plt.show()

@@ -37,7 +37,7 @@ For the maximum altitude given a maximum allowable depth error this yields:
 
 Where $\Delta z$ is the depth error and $\Delta d$ the disparity error.
 
-The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10 cm and a focal length of 256.
+The stereo camera mounted on the drone in JPL's aerial vehicle lab had a baseline of about 10 cm and a focal length of 275.42.
 
 With these properties and estimating a subpixel-precision disparity error of 0.5 pixels the depth error at varying altitudes looks as follows:
 
@@ -47,7 +47,7 @@ With these properties and estimating a subpixel-precision disparity error of 0.5
     \label{fig:stereo_limit}
 \end{figure}
 
-Let's assume we allow a maximum depth error of 10 cm. Considering this constraint we can fly at a maximum altitude of about 3 m as indicated in \cref{fig:stereo_limit}.
+Let's assume we allow a maximum depth error of 10 cm. Considering this constraint we can fly at a maximum altitude of 3.184 m as indicated in \cref{fig:stereo_limit}.
 
 This limitation has to be kept in mind. However, it is neither too surprising nor is it too restrictive as the stereo camera is simply a depth alternative for low altitude flight maneuvers. In the context of an entire science mission it is almost exclusively used for landing site verification purposes.
 
@@ -241,14 +241,37 @@ Therefore, the switching is performed by using a separate ROS subscriber which c
     \caption{Laser Ranger Finder Based Switch between Depth Sources}
 \end{figure}
 
-% A second application of this switching is to disable the stereo node until the drone reaches approximately 30 cm altitude. The reason for this is that in order to detect the depth of points about 30 cm away from the drone a disparity of about 85 pixels is necessary as shown in \cref{eq:min_depht}:
+A second application of this switching is to disable the stereo node until the drone reaches approximately 50 cm altitude. The reason for this is that below that altitude, the camera's don't have sufficient overlap to detect matches for the closest points with the largest disparities. This is because the StereoSGBM algorithm is implemented with a maximum disparity of 80 pixels. This is shown in \cref{fig:overlap}.
 
-% \begin{equation}
-%     d = \frac{f \cdot b}{z} = \frac{256 * 10cm}{30cm} = 85.333
-% \end{equation}
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.17]{images/stereo_camera_depth/overlap.png}
+    \caption{Overlap problem at low altitudes: The baseline is indicated in green and the image footprint in red. The overlap of the two camera images is the reference camera's image footprint minus the baseline.}
+    \label{fig:overlap}
+\end{figure}
 
-% At 30 cm distance, this overlap is not given. Therefore 
-% With an image width of 640 pixels, a baseline of 10 cm and a focal length of 256 pixels we have a FOV of 102.68$\deg$. Therefore, the horizontal distance
+With the given camera parameters shown in \cref{sec:stereo_methodology} the metric image overlap is calculated to be.
+
+\begin{equation}
+    overlap = 2 \cdot \frac{w}{2\cdot f} \cdot z - b = \frac{w\cdot z}{f} - b = \frac{640\cdot z}{275.42} - 0.1 m
+    \label{eq:overlap}
+\end{equation}
+
+\begin{equation}
+    overlap = \frac{d \cdot z}{f} = \frac{80 \cdot z}{275.42}
+    \label{eq:disp_overlap}
+\end{equation}
+
+\cref{eq:disp_overlap} shows the minimum image overlap required for a possible maximum disparity of 80 pixels. Plugging this into \cref{eq:overlap} and solving for z we get:
+
+\begin{equation}
+    z = \frac{b \cdot f}{w - d} = \frac{0.1 m \cdot 275.42}{640 - 80} = 0.04918 m
+\end{equation}
+
+Therefore, the drone must be at least 50 cm in the air in order to perceive depth well. Note that this is rather a high minimum altitude. This is because the simulated camera's have rather small focal lengths. The trade-off with smaller focal lengths is the ability to use stereo higher above the ground. 
+
+For instance, a camera pair with a focal length of 512 pixels and the otherwise same setup would only need a minimum altitude of 9.14 cm. However, the altitude at which a depth error of 10 cm is already at  2.347 m as opposed to the derived
+3.184 m shown in \cref{fig:stereo_limit}.
 
 % TODO: finish the overlapping FOV calculation
 \subsection{Landing Site Detection without Lateral Motion}

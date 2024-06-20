@@ -1,12 +1,24 @@
 \chapter{Conclusion}
 \label{sec:conclusion}
 
-In this work, various contributions to LORNA's Mars Science Helicopter proposal were introduced.
+Throughout this work new contributions were added, and the existing pipeline was used extensively. A conclusion of both is drawn in the following.
 
-The structure from motion approach proofs the capability to provide accurate depth information in both of these scenarios. However, as shown in the evaluation, the current implementation lacks robustness which often leads to a crash of the depth supply and therefore to a stop of landing site detection. 
+\section{Existing Framework}
 
-To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to generated depth stationary. The implementation showed very convincing results when compared to a depth camera ground truth. Both the depth quality and the overall robustness of this alternative proved to be highly satisfactory.
+\subsection{SFM}
+First and foremost, The structure from motion approach is a valid option to provide accurate depth information at all altitudes. However, as shown in \cref{subsec:sfm_insufficiencies}, the current implementation lacks robustness, often crashing on startup or during yaw rotations. This is of course a fundamental issue which needs to be resolved as such an occurrence stops the landing site detection.
 
-Lastly and most importantly an autonomous landing procedure using the visual landing site detection pipeline was introduced. The presented implementation allowed for safe landing even in extremely hazardous terrain. The adaptive nature of the behavior tree structure enables the capable handling of critical situations, thus enabling the drone to land repeatedly and safely in unknown terrain.
+Additionally, due to the jumps in the selected reference key frame in SFM's stereo implementation, LSD's map is often partially erased leading to fewer landing sites that are detected over time.
+
+\subsection{LSD}
+The landing site detection mechanism on the other hand showed great robustness and quality regardless of the depth source it was provided with or the altitudes flown at. When supplied by different depth sources, it merged the information well and lastly, as tested in \cref{subsec:rough_coverage} and \cref{subsec:rough_map_rw}, LSD didn't detect landing sites where there should be none detected, and it did detect sites upon seeing good candidates.
+
+
+
+\section{Contributions}
+
+To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to be able to perceive depth instantaneously and statically. A laser range finder based switching mechanism allows for the mutually exclusive usage of SFM and stereo, resulting in constrained computational overhead. The implementation showed very convincing results. This was shown by means of a comparison of LSD debug images when supplied with the stereo camera depth as well as depth camera ground truth. Both the depth quality and the overall robustness of this alternative proved to be very satisfactory, validating this option for the usage at low altitudes.
+
+Lastly and most importantly an autonomous landing procedure using the visual landing site detection pipeline was introduced.  The adaptive nature of the behavior tree structure enables the capable handling of critical situations, thus enabling the drone to land repeatedly and safely in unknown terrain.
 
 Overall, the work shown in this thesis builds upon the existing LORNA project and combined several modules to achieve an autonomous landing pipeline suited for the challenge of Mars exploration. 

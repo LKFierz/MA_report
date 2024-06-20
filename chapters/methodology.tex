@@ -13,7 +13,7 @@ Staying with the project's theme of visual sensors, a stereo camera poses a solu
 
 % This is because the drone does not retain any hazard information past the knowledge of detected landing sites and terrain knowledge from either HiRISE, Ingenuity or the rover which is implicitly used for the mission creation. Therefore, it could be said that the drone flies blindly with respect to obstacles. 
 
-\section{Stereo Camera}
+\section{Stereo Camera}\label{sec:stereo_methodology}
 
 The implementation of the stereo camera sensor itself is very straightforward as simply duplicating an existing camera, offsetting it an adequate distance to resemble the real model, and setting the parameters to equal the hardware, results in the desired outcome.
 
@@ -22,8 +22,10 @@ The simulated camera sensors used for this had the following properties:
 \begin{itemize}
     \item Image width: 640 pixels
     \item Image height: 480 pixels
-    \item fx: 256px
-    \item fy: 256px
+    \item fx: 275.42px
+    \item fy: 276.27px
+    \item cx: 342.22
+    \item cy: 234.66
 \end{itemize}
 
 The input to the stereo camera depth node are the two camera images and the drone's base link pose. Processing this information is different from for the existing SFM algorithm. Therefore, a new depth generation node was put in place. 
