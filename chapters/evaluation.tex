@@ -100,6 +100,20 @@ The drone lands at the home position in the two following cases:
 
     This is possible as the stereo camera detects landing sites on the takeoff location when ascending. However, given that the last mission waypoint is sufficiently far away from the takeoff location, the drone should land at a closer location. 
 \end{itemize}
+\subsubsection{Off Board Mode connection Issues}
+As will be presented in the following, connection failures between the PX4 flight controller and the autonomy occurred, leading to the deactivation of the off board mode and therefore the loss of control of the autonomy over the rotorcraft. These issues arose most likely because the MAVROS connection in between failed to send a necessary heartbeat repeatedly and thus the connection was intercepted.
+
+Self-evidently, this did not result in a successful landing and was not counted as such. However, as these connection issues did not occur due to insufficiencies in the pipeline presented in this work, they were not considered failures of the pipeline either. 
+
+Therefore, to conclude the possible success states:
+
+\begin{itemize}
+    \item Successful: The drone initiated landing and did not fall over throughout the whole flight.
+    \item Connection loss: The autonomy lost the connection to the flight controller and therefore no information can be gathered about this flight and the landing behavior's performance.
+    \item Crash: Either the roll or pitch angle of the drone exceeded the predetermined threshold of 70 degrees. This is a failure of the pipeline.
+    \item Home landing: The drone did not settle at a perceived landing site and returned to the home position instead. On a map with sufficient landing opportunities this indicates a failure. When actually not traversing terrain with valid landing sites as was often the case for the rough terrain shown in \cref{subsec:rough_map_rw}, landing home is the desired behavior.
+\end{itemize}
+\clearpage
 
 
 \subsection{Visual Analysis}
@@ -119,17 +133,15 @@ The yellow points are landing attempts, where a chosen landing site was not veri
 
 Blue points indicate successful landings achieved through the trigger of the landing-at-home action. As previously mentioned, When flying on a map with obvious landing opportunities, triggering the landing-at-home action indicates an issue with the landing site detection mechanism.
 
-Lastly, red dots indicate landing sites which were detected during a flight which was disrupted by a timeout.
+Lastly, red dots indicate landing sites which were detected during a flight which was disrupted by a connection issue.
 
 In the case of multiple attempts at verifying a landing site, connection lines are drawn between the failed attempts and the final landing indicating which subsequent sites were chosen.
 
 
-\subsection{Off Board Mode connection Issues}
-As will be presented in the following, connection failures between the PX4 flight controller and the autonomy occurred, leading to the deactivation of the off board mode and therefore the loss of control of the autonomy over the rotorcraft. These issues arose most likely because the MAVROS connection in between failed to send a necessary heartbeat repeatedly and thus the connection was intercepted.
-
-Self-evidently, this did not result in a successful landing and was not counted as such. However, as these connection issues did not occur due to insufficiencies in the pipeline presented in this work, they were not considered failures of the pipeline either.
-\clearpage
 \section{Test Flights}\label{sec:test_flights}
+
+The following tests were performed. Each test consisted of 100 flights.
+
 \subsection{Arroyo - Randomized Waypoints}\label{subsec:eval_rand_wp}
 
 When starting 100 times from the fixed position indicated in \cref{fig:fixed_start} and flying to random mission waypoints at 100 m altitude in a 70x70m vicinity on the Arroyo map, the following results were achieved:
@@ -140,10 +152,11 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
      \label{tab:result_random_waypoint}
      \begin{tabular}{|c|c|c|c|c|}
      \hline
-     \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+     \# Flights & \# Successes & \# Con. Loss & \# Crashes & \# Home Landing\\ \hline \hline
      100 & 99 & 1 & 0 & 0 \\
      \hline
      \end{tabular}
+     \caption{The outcomes of the flights performed. Con. Loss stands for connection loss of the off board mode.}
     \end{center}
     \end{table}
 
@@ -184,9 +197,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     This test is a very clear demonstration of the applied chosen heuristics. The best landing site detected is very likely one that is detected at the takeoff position. Around this clustering of landings there is notable space of no attempts performed. This can be attributed to the competing motives of the landing site selection. The quality of the landing site defines the autonomy's choice until the drone's distance to that landing site is too big, and a closer one is chosen. 
 
 % \subsection{Arroyo - Farther Randomized Waypoints}\label{subsec:far_eval_rand_wp}
-
 % To test the pipeline's proclivity towards the selection of landing sites near the spawn point, the same experiment is run again whilst making sure the mission waypoints are at least 40 m away from the spawn location.
-
 % \begin{table}[h]
 %     \begin{center}
 %      \caption{Results with fixed takeoff and random waypoints at least 40 m from the spawn}\vspace{1ex}
@@ -199,7 +210,6 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 %      \end{tabular}
 %     \end{center}
 %     \end{table}
-
 %     The landing attempt numerics are shown here:
 %     \begin{table}[h]
 %         \begin{center}
@@ -213,7 +223,6 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 %          \end{tabular}
 %         \end{center}
 %     \end{table}
-
 %     \begin{figure}[h]
 %         \begin{center}
 %             \includegraphics[scale=0.5]{images/evaluation/landings_random_WP_GT.png}
@@ -221,7 +230,6 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 %             \label{fig:landing_attempts_far_random_WP}
 %         \end{center}%TODO: replace
 %     \end{figure}
-
 %     \subsubsection{Numeric Discussion}
 % %TODO
 %     \subsubsection{Visual Discussion}
@@ -281,7 +289,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     Lastly, the selected landing sites were all at plausible location. Certain locations seem unfavorable but only on this plot due to the non-orthographic background image.
 
-\subsection{Rough Map - Random Waypoints over Platforms}\label{subsec:rough_coverage}
+\subsection{Rough Map - Mission over Platforms}\label{subsec:rough_coverage}
         \begin{figure}[h]
             \centering
             \includegraphics[scale=0.24]{images/evaluation/rough_over_platforms.png}
@@ -357,7 +365,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
         The same happened when the first platform could be seen during ascent and was relatively close to the last waypoint.
 
 
-\subsection{Rough Map - Completely Random Waypoints}\label{subsec:rough_map_rw}
+\subsection{Rough Map - Random Waypoints}\label{subsec:rough_map_rw}
 
     \begin{figure}[h]
         \centering
@@ -411,96 +419,97 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     
     %TODO analyze also how many lses were found using the additional patterns.
 
-% \subsection{Rough Map - Completely Random Waypoints with Larger Search Radius}
+\subsection{Rough Map - Random Waypoints with Larger Search Radius}
 
-%     When flying the same experiment setup as introduced in \cref{subsec:rough_map_rw} but with a larger search pattern radius we arrive at the following outcome:
+    When flying the same experiment setup as introduced in \cref{subsec:rough_map_rw} but with a larger search pattern radius we arrive at the following outcome:
 
-%     \begin{table}[h]
-%         \begin{center}
-%          \caption{Results - Rough map with platform coverage}\vspace{1ex}
-%          \label{tab:result_rough_rand}
-%          \begin{tabular}{|c|c|c|c|c|}
-%          \hline
-%          \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
-%          20 & 19 & 1 & 0 & 6 \\
-%          \hline
-%          \end{tabular}
-%         \end{center}
-%     \end{table}
+    \begin{table}[h]
+        \begin{center}
+         \caption{Results - Rough map with platform coverage}\vspace{1ex}
+         \label{tab:result_rough_rand_lr}
+         \begin{tabular}{|c|c|c|c|c|}
+         \hline
+         \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+         100 & 98 & 2 & 0 & 34 \\
+         \hline
+         \end{tabular}
+        \end{center}
+    \end{table}
 
-%     \begin{table}[h]
-%         \begin{center}
-%          \caption{Landing attempts rough map without platform covering mission}\vspace{1ex}
-%          \label{tab:land_nums_rough_rand}
-%          \begin{tabular}{|c|c|c|c|}
-%          \hline
-%          \# Flights & \# Landing on first attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
-%          20 & 13 & 1 & 0 \\
-%          \hline
-%          \end{tabular}
-%         \end{center}
-%     \end{table}
+    \begin{table}[h]
+        \begin{center}
+         \caption{Landing attempts rough map without platform covering mission}\vspace{1ex}
+         \label{tab:land_nums_rough_rand_lr}
+         \begin{tabular}{|c|c|c|c|}
+         \hline
+         \# LS Landings & \# Landing on first attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
+         66 & 60 & 6 & 0 \\
+         \hline
+         \end{tabular}
+        \end{center}
+    \end{table}
 
-%     \begin{figure}[h]
-%     \centering
-%     \includegraphics[scale=0.5]{images/evaluation/landing_rough_rand.png}
-%     \caption{Landing attempt locations for the rough map with completely random missions}
-%     \label{fig:land_rough_rand}
-%     \end{figure}
+    \begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.5]{images/evaluation/landing_rough_rand_lr.png}
+    \caption{Landing attempt locations for the rough map with completely random missions and an increased landing site search action radius}
+    \label{fig:land_rough_rand_radius}
+    \end{figure}
 
-%     \subsubsection{Numerical Discussion}
+    \subsubsection{Numerical Discussion}
 
-%     Notably, the drone went to the home position 6 times. This is the desired behavior, when no landing site was found and is therefore to be considered a success. Like for the case when the platforms were covered by the mission, the landing sites were always verified as they were by design of high quality. One timeout remained also in this run.
+    Compared to the same randomized run on the hostile terrain shown in \cref{subsec:rough_map_rw} the drone went home only 34 times as opposed to the previous 54. This shows the impact of the additional search patterns flown when no platforms are seen during the mission. 
+
+    6 times a second landing site had to be chosen. These were all picked on the same platform the initial landing was attempted. 
     
-%     %TODO analyze also how many lses were found using the additional patterns.
 
-% \subsection{Arroyo - Randomized Takeoff and Waypoints flown with SFM}\label{subsec:SFM_complete_rand}
+\subsection{Arroyo - Randomized Takeoff and Mission with SFM}\label{subsec:SFM_complete_rand}
 
-%     In this test the setup was the same as for \cref{subsec:compl_rand} with the exception, that SFM was used for the depth generation.
+    As mentioned in \cref{subsec:sfm_insufficiencies}, SFM's implementation at the time of this work was not well suited for high altitude flights. For sake of completeness however, the pipeline was flown with SFM and analyzed in the following. 
 
-%     The numerical result thereof is displayed below:
+    In this test the setup was the same as for \cref{subsec:compl_rand} with the exception, that SFM was used for the depth generation.
 
-%     \begin{table}[h]
-%         \begin{center}
-%             \caption{Results - Rough map with platform coverage}\vspace{1ex}
-%             \label{tab:result_rough_covered}
-%             \begin{tabular}{|c|c|c|c|c|}
-%             \hline
-%             \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
-%             20 & 19 & 1 & 0 & 0 \\ %TODO: replace with values
-%             \hline
-%             \end{tabular}
-%         \end{center}
-%     \end{table}
+    \begin{table}[h]
+        \begin{center}
+            \caption{Results - Rough map with platform coverage}\vspace{1ex}
+            \label{tab:result_rough_covered}
+            \begin{tabular}{|c|c|c|c|c|}
+            \hline
+            \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+            100 & 77 & 23 & 0 & 0 \\ %TODO: replace with values
+            \hline
+            \end{tabular}
+        \end{center}
+    \end{table}
 
-%     \begin{table}[h]
-%         \begin{center}
-%             \caption{Landing attempts rough map with platform covering mission}\vspace{1ex}
-%             \label{tab:land_nums_rough_coverage}
-%             \begin{tabular}{|c|c|c|c|}
-%             \hline
-%             \# Flights & \# Landing on first attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
-%             20 & 20 & 0 & 0 \\%TODO: replace
-%             \hline
-%             \end{tabular}
-%         \end{center}
-%     \end{table}
+    \begin{table}[h]
+        \begin{center}
+            \caption{Landing attempts rough map with platform covering mission}\vspace{1ex}
+            \label{tab:land_nums_rough_coverage}
+            \begin{tabular}{|c|c|c|c|}
+            \hline
+            \# Flights & \# Landing on first attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
+            20 & 20 & 0 & 0 \\%TODO: replace
+            \hline
+            \end{tabular}
+        \end{center}
+    \end{table}
 
-%     \begin{figure}[h]
-%     \centering
-%     \includegraphics[scale=0.5]{images/evaluation/landing_rough_covered.png}
-%     \caption{Landing attempt locations for the rough map with platform covered by the mission}
-%     \label{fig:land_rough_covered} %TODO: replace
-%     \end{figure}
+    \begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.5]{images/evaluation/landing_rough_covered.png}
+    \caption{Landing attempt locations for the rough map with platform covered by the mission}
+    \label{fig:land_rough_covered} %TODO: replace
+    \end{figure}
 
-%     As both the spawn platform and the landing platforms where spawned randomly, evaluating the visual outcome is redundant. For sake of completion however, it is still displayed.
+    As both the spawn platform and the landing platforms where spawned randomly, evaluating the visual outcome is redundant. For sake of completion however, it is still displayed.
 
-%     \subsubsection{Numerical Discussion}
-%     One timeout occurred, but each attempt at landing resulted in a success. 
+    \subsubsection{Numerical Discussion}
+    One timeout occurred, but each attempt at landing resulted in a success. 
 
-%     This proves that LSD does in fact not perceive convincing landing sites where there should be none. Additionally, as the drone never went home, this proves that LSD also detects landing sites where there should be safe landing zones.
+    This proves that LSD does in fact not perceive convincing landing sites where there should be none. Additionally, as the drone never went home, this proves that LSD also detects landing sites where there should be safe landing zones.
     
-%     Each landing site selected was verified. This convincing result is not surprising as the inserted landing sites are perfect landing sites and are therefore unlikely to trigger a verification failure.
+    Each landing site selected was verified. This convincing result is not surprising as the inserted landing sites are perfect landing sites and are therefore unlikely to trigger a verification failure.
 
 \section{Theoretical Edge Cases}
 \cref{sec:test_flights} shows that the implemented landing procedure performs well only terrain that is roughly comparable to that on Mars. These tests represent rather ordinary cases though. In the following, a number of theoretical edge cases are introduced and their handling by this work's pipeline discussed.

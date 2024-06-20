@@ -211,7 +211,7 @@ The conceptual landing behavior which is started at the end of the mission state
     \item Using the drone's current position, the landing site's location and the site's obstacle altitude parameter, determine a minimum safe clearing altitude up to which to ascend.
     \item Traverse to the considered landing site.
     \item Descend to a predetermined verification altitude above ground (during this descent the stereo camera takes over at some point).
-    \item Hover for a given duration.
+    \item Hover for a given duration. In practice 15 s seemed an adequate amount of time to give LSD a chance to converge.
     \item Perform the verification check introduced in \cref{subsubsec:verification}.
     \begin{enumerate}
         \item If verification is successful, initiate landing.

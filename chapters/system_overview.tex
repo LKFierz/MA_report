@@ -166,8 +166,17 @@ In a subsequent step the measurements are pooled up to the top layer and down ag
 
 Similar to Kalman filters, the OMG cells' uncertainties improve over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. 
 
-% When an incoming point cloud comes from a camera pose which yields less than 95\% theoretical image overlap with the previous location, a map shift of the rolling buffer is performed. This shift is implemented as the clearing of the rows and columns no longer necessary and a shift of the starting index for further images. This implementation allows the movement of the map without the need to reassign filled cells. 
-%TODO: make schematic image of this or don't put this in the report
+When an incoming point cloud comes from a camera pose which yields less than 95\% theoretical image overlap with the previous location, a map shift of the rolling buffer is performed. The rows and columns no longer necessary are cleared, and the starting index is shifted for further incoming point clouds. This implementation allows the movement of the map without the need to reassign filled cells. In other words, by merely reassigning the cell values of the DEM container, the required parallax effect is achieved.
+
+This shift is visualized in \cref{fig:map_movement}. Note the images\footnote[1]{Images were created using DeepAI's image generator (https://deepai.org/machine-learning-model/text2img)} are only used for ease of demonstration. They represent incoming point clouds. The dashed orange arrow indicates the drone's movement relative to the instantaneous DEM. The new Image is entered at the new starting index and points exceeding the map boundaries are wrapped around to the other side. The part of the DEM which was deleted is filled with the incoming points and new measurements at the location of retained information lead to an update of the previously filled cells. Note that \cref{fig:map_movement} shows a very radical map movement. Smaller camera movements between iterations would lead to the retention of most of the DEM.
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[scale=0.25]{images/system_overview/map_movement.png}
+    \caption{Schematic LSD map movement procedure: Outlined with orange is the retained part of the DEM (in the second frame it is overlaid by part of the new input). The blue image represents the next input point cloud and the red dot indicates the starting index where the new point cloud starts to be stored. Both images were created using AI.}
+    \label{fig:map_movement}
+\end{figure}
+
 
 \subsubsection{Hazard Segmentation}\label{subsubsec:setup:haz_seg}
 
