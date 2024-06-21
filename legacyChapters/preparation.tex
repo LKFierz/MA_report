@@ -24,7 +24,7 @@ The specific advantage of a stereo camera implementation when compared to SFM ca
 
 As already mentioned above the need for lateral motion in itself is an undesirable necessity for a rotorcraft in unknown terrain. 
 
-In this setup the structure from motion approach is based on a key frame buffer which needs to be filled with image-pose pairs at different horizontal positions in order to start acquiring depth information. The current setting in the implementation \citet{SFM} uses 6 key frames. Therefore, for a single point cloud it is necessary to move laterally 6 times in order to start perceiving depth. Following the depth error formula from a stereo disparity image (\ref{eq:SFM_depth_error}) and assuming an altitude of 2.5m above ground with a focal length of 256 pixels and a disparity error of 0.5 pixels, the necessary baseline in order to keep the depth error below a critical 5cm is:
+In this setup the structure from motion approach is based on a keyframe buffer which needs to be filled with image-pose pairs at different horizontal positions in order to start acquiring depth information. The current setting in the implementation \citet{SFM} uses 6 keyframes. Therefore, for a single point cloud it is necessary to move laterally 6 times in order to start perceiving depth. Following the depth error formula from a stereo disparity image (\ref{eq:SFM_depth_error}) and assuming an altitude of 2.5m above ground with a focal length of 256 pixels and a disparity error of 0.5 pixels, the necessary baseline in order to keep the depth error below a critical 5cm is:
 
 \subsubsection{Software vs Hardware Depth Perception}
 

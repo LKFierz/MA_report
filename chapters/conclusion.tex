@@ -1,24 +1,24 @@
 \chapter{Conclusion}
 \label{sec:conclusion}
 
-Throughout this work new contributions were added, and the existing pipeline was used extensively. A conclusion of both is drawn in the following.
+Throughout this work, new contributions were added, and the existing pipeline was used extensively. The following concludes both.
 
 \section{Existing Framework}
 
 \subsection{SFM}
-First and foremost, The structure from motion approach is a valid option to provide accurate depth information at all altitudes. However, as shown in \cref{subsec:sfm_insufficiencies}, the current implementation lacks robustness, often crashing on startup or during yaw rotations. This is of course a fundamental issue which needs to be resolved as such an occurrence stops the landing site detection.
+First and foremost, The structure from motion approach is a valid option to provide accurate depth information at all altitudes. However, as shown in \cref{subsec:sfm_insufficiencies}, the current implementation lacks robustness, often crashing on startup or during yaw rotations. This is a fundamental issue that needs to be resolved, as such an occurrence stops the detection of the landing site.
 
-Additionally, due to the jumps in the selected reference key frame in SFM's stereo implementation, LSD's map is often partially erased leading to fewer landing sites that are detected over time.
+Additionally, due to the jumps in the selected reference keyframe in SFM's stereo implementation, LSD's map is often partially erased, leading to fewer landing sites being detected.
 
 \subsection{LSD}
-The landing site detection mechanism on the other hand showed great robustness and quality regardless of the depth source it was provided with or the altitudes flown at. When supplied by different depth sources, it merged the information well and lastly, as tested in \cref{subsec:rough_coverage} and \cref{subsec:rough_map_rw}, LSD didn't detect landing sites where there should be none detected, and it did detect sites upon seeing good candidates.
+On the other hand, the landing site detection mechanism showed great robustness and quality regardless of the depth source it was provided with or the altitudes flown at. When supplied by different depth sources, it merged the information well and lastly, as tested in \cref{subsec:rough_coverage} and \cref{subsec:rough_map_rw}, LSD didn't detect landing sites where there should be none detected, and it did detect sites upon seeing good candidates.
 
 
 
 \section{Contributions}
 
-To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to be able to perceive depth instantaneously and statically. A laser range finder based switching mechanism allows for the mutually exclusive usage of SFM and stereo, resulting in constrained computational overhead. The implementation showed very convincing results. This was shown by means of a comparison of LSD debug images when supplied with the stereo camera depth as well as depth camera ground truth. Both the depth quality and the overall robustness of this alternative proved to be very satisfactory, validating this option for the usage at low altitudes.
+To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to perceive depth instantaneously and statically. A laser range finder-based switching mechanism allows for the mutually exclusive usage of SFM and stereo, resulting in constrained computational overhead. The implementation showed very convincing results. This was shown by comparing LSD debug images when supplied with the stereo camera depth and depth camera ground truth. The depth quality and the overall robustness of this alternative proved very satisfactory, validating this option for usage at low altitudes.
 
-Lastly and most importantly an autonomous landing procedure using the visual landing site detection pipeline was introduced.  The adaptive nature of the behavior tree structure enables the capable handling of critical situations, thus enabling the drone to land repeatedly and safely in unknown terrain.
+Lastly, an autonomous landing procedure using the visual landing site detection pipeline was introduced.  The adaptive nature of the behavior tree structure enables the capable handling of critical situations, thus enabling the drone to land repeatedly and safely in unknown terrain.
 
-Overall, the work shown in this thesis builds upon the existing LORNA project and combined several modules to achieve an autonomous landing pipeline suited for the challenge of Mars exploration. 
+Overall, the work shown in this thesis builds upon the existing LORNA project and combines several modules to achieve an autonomous landing pipeline suited for the challenge of Mars exploration. 

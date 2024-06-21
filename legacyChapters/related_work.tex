@@ -43,7 +43,7 @@ The LORNA project tackles this in a two step approach:
 
 \subsection{Structure from Motion (SFM)}\label{subsec:related_work:SFM}
 
-The Structure from Motion algorithm \citep{SFM} uses a key frame based approach to create a point cloud from incoming monocular camera images. It receives images and their image poses respectively from the vision based state estimator. (\ref{sec:state_estimator})
+The Structure from Motion algorithm \citep{SFM} uses a keyframe based approach to create a point cloud from incoming monocular camera images. It receives images and their image poses respectively from the vision based state estimator. (\ref{sec:state_estimator})
 
 As it is supplied with monocular images from a nadir pointed camera it creates point clouds using lateral motion in between images. This allows for an adaptive baseline enabling depth perception at high altitudes. However, at low altitudes lateral motion in unknown terrain poses a significant risk for a rotorcraft. More on this in \cref{sec:StereoDepth}.
 
