@@ -6,7 +6,7 @@ The xVIO state estimator uses the camera, IMU and laser range finder sensor onbo
 
 As mentioned above, the rotorcraft is flown using a PX4 flight controller. It communicates with the autonomy framework using the MAVROS ROS wrapper for the MAVLink rotorcraft protocol. This connection is used for the transmission of waypoint information and the setting of parameters.
 
-The sensor images and their respective associated drone pose are given the landing site pipeline. In a first step, the 3D terrain is reconstructed using a structure from motion node. The reconstructed terrain is then given to the landing site detection algorithm(LSD) which first aggregates the information in a robot-centric multi resolution elevation map and then segments valid landing sites on that. Detected landing sites are given to the autonomy to make the required adaptive landing decisions.
+The sensor images and their respective associated drone pose are given the landing site pipeline. In a first step, the 3D terrain is reconstructed using a structure from motion node. The reconstructed terrain is then given to the landing site detection algorithm(LSD) which first aggregates the information in a robot-centric multi-resolution elevation map and then segments valid landing sites on that. Detected landing sites are given to the autonomy to make the required adaptive landing decisions.
 
 The ground station QGroundControl is used for the creation of mission waypoints which are transferred to the autonomy using its mission planner support node introduced in \cref{subsec:sup_nodes}. Therefore, it is used more so as a preparatory tool for the autonomy as opposed to a central part of the pipeline. In the developmental stages of the landing site pipeline however, the drone can be flown without the autonomy. In such cases QGC serves as a user interface allowing the mission planning and parameter setting. 
 
@@ -143,7 +143,7 @@ Then, using these depth values of the individual and the camera parameters, the 
 
 \subsubsection{Depth Aggregation}\label{subsubsec:setup:aggregation}
 
-The foundation of the landing site detection mechanism is a rolling buffer based multi resolution elevation map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
+The foundation of the landing site detection mechanism is a rolling buffer based multi-resolution elevation map as indicated in \cref{fig:DEM}. Each base layer cell is represented with 4 cells at a higher resolution layer.
 
 \begin{figure}[ht!]
     \centering
@@ -164,7 +164,7 @@ Each point cloud input iteration, a depth measurement and the associated stereo 
 
 In a subsequent step the measurements are pooled up to the top layer and down again in order to make the DEM more consistent and interpolate missing values. The same result could be achieved by entering each measurement individually and directly pooling it up and down the cells that cover its footprint. However, splitting the procedure into a step that acquires all measurements and second task that collectively pools all cells, achieves the same with fewer updates.
 
-Similar to Kalman filters, the OMG cells' uncertainties improve over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. 
+Similar to Kalman filters, the OMG cells' uncertainties improve over time as more measurements are entered. Because of this the DEM's terrain estimate converges over time. This is beneficial for the acquisition of landing sites on well known terrain. However, convergence on known terrain makes it harder for future inputs to override the existing DEM. To counteract this \citet{LSD2} proposed a time inflation factor which was however not implemented. This would reduce the weight of older data and make it thus easier for incoming points to alter the cells.
 
 When an incoming point cloud comes from a camera pose which yields less than 95\% theoretical image overlap with the previous location, a map shift of the rolling buffer is performed. The rows and columns no longer necessary are cleared, and the starting index is shifted for further incoming point clouds. This implementation allows the movement of the map without the need to reassign filled cells. In other words, by merely reassigning the cell values of the DEM container, the required parallax effect is achieved.
 

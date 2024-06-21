@@ -8,24 +8,100 @@ SFM is part of the LORNA pipeline and proved to be a valid option for the tackle
 
 Though very well performing when initialized successfully at low to mid-altitudes, SFM often had issues during startup and showed frequent insufficiencies when the drone rotated or when switching the key frames used for the stereo at high altitudes.
 
-Unfortunately, a lack of time prevented me from resolving these issues. Nevertheless, the shortcomings of the current standing are showed visually in %TODO ref figures.
+Unfortunately, a lack of time prevented me from diving into these issues. Nevertheless, the shortcomings of the current standing are laid out to the best of my current knowledge in the following to hopefully be resolved in future work.
 
-As described in \cref{subsubsec:SFM_stereo}, SFM stays at the same reference key frame for stereo depth creation until that key frame's overlap with the new image is too small, and the key frame is switched out. In practice this can be seen as jumps in the LSD algorithm, where the new point cloud's center is at a new location far enough from the previous center, that a significant shift of the rolling buffer has to be performed and a large part of the DEM has to be filled again. During this time, no landing sites are detected.%TODO Show bad updates.
+First, SFM showed a substantial lack of robustness when being initialized. If the drone was at all rotating during initialization, SFM would either crash or not start up at all. \cref{fig:SFM_issue_1} shows an image of a corrupted DEM due to bad SFM information.
+
+%TODO: show SFM point clouds.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.25]{images/evaluation/SFM_issues/Screenshot from 2024-06-19 20-16-22.png}
+    \caption{One example of the LSD output when supplied with suboptimally performing SFM}
+    \label{fig:SFM_issue_1}
+\end{figure} 
+
+After initialization SFM showed to still be prone to produce corrupted data when rotating between mission waypoints or landing site attempts. Bad SFM results are fed into LSD's elevation map and are retained until these points are overruled. Therefore, a single corrupted SFM point cloud lastingly impacts the DEM and thus LSD's capability of detecting high quality landing sites.
+
+Another pressing issue is SFM's manner of handling motion at high altitudes:
+
+As described in \cref{subsubsec:SFM_stereo}, SFM stays at the same reference key frame for stereo depth creation until that key frame's overlap with the new image is too small, and the key frame is switched out. In practice this can be seen as jumps in the LSD algorithm, where the new point cloud's center is at a new location far enough from the previous center, that a significant shift of the rolling buffer has to be performed and a large part of the DEM has to be filled again. During this time, no landing sites are detected.
+
+This phenomenon can be seen in \cref{fig:SFM_movement1}. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{images/evaluation/SFM_issues/Screenshot from 2024-06-20 14-41-06.png}
+\caption{Intermediate LSD state after map movement}
+\label{fig:SFM_movement1}
+\end{figure}
+
+%TODO show convergence after the bad shift again
+
+The issue with large map shifts is the removal of most of the DEM's information which leads to the delay of landing site detection on most of the map.
+
 
 \section{LSD Analysis}\label{sec:eval_LSD}
 
-The LSD algorithm is very robust node which, when given high quality depth clouds, is able to accurately detect valid landing sites without fail.
+Given high quality depth clouds, the LSD algorithm is able to accurately detect valid landing sites without fail.
 
-LSD's consideration of the same terrain at different resolutions leads to a very consistent elevation map. However, when flying at high altitudes where the image footprint is big, this same characteristic prevents the usage of most of the camera image as only the centermost area coinciding with the other layers of the image is used. %TODO image of this
+LSD's consideration of the same terrain at different resolutions leads to a very consistent elevation map. However, when flying at high altitudes where the image footprint is big, this same characteristic prevents the usage of most of the camera image as only the centermost area coinciding with the other layers of the image is used. This is shown in \cref{fig:LSD_center_usage}.
 
-Due to a fixed number of layers, the image points detected at high altitudes have a pixel footprint which exceeds that of a cell from the coarsest layer. Therefore, the point cloud input to LSD is sparse and leaves many cells empty. This prevents the detection of landing sites in the neighborhood. %TODO show image of sparse map with only 3 layers or so
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.14]{images/evaluation/LSD_center_usage.png}
+\caption{Comparison of the tracker camera image and the region of interest used by LSD}
+\label{fig:LSD_center_usage}
+\end{figure}
 
-A remedy for this is the usage of more layers, increasing the highest layer's cell footprints. This way, the discrepancy of the footprints of the incoming points and the cells available is not as big and as a result the DEM is less sparse. It has to be noted however, that using more layers leads to more computational overhead. %TODO: show image of about same terrain using 4-5 layers
+Due to a fixed number of layers, the image points detected at high altitudes have a pixel footprint which exceeds that of a cell from the coarsest layer. Therefore, the point cloud input to LSD is sparse and leaves many cells empty. Empty cells prevent the detection of landing sites in the neighborhood. The smaller the coarsest layer's cell footprints, the stronger the effect. \cref{fig:lsd_2_layers_1} shows the LSD DEM before convergence when using 2 layers at 100 m altitude.
+
+The lowest resolution layer has a fixed resolution of 0.05 m / cell. Considering the 4-fold division of a cell when moving to a higher resolution layer, the resolution at the top level is 0.2 m / cell. On the other hand, at 100 m altitude with the camera parameters introduced in \cref{sec:stereo_methodology} the tracker camera's pixel footprint is 0.363 m/px. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/2_layers_1.png}
+\caption{LSD DEM at 100 m right after initialization with only 2 layers}
+\label{fig:lsd_2_layers_1}
+\end{figure}
+
+After a while the map is filled with further measurements as shown in \cref{fig:lsd_2_layers_2}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/2_layers_2.png}
+\caption{DEM at 100 m with 2 layers after some conversion time}
+\label{fig:lsd_2_layers_2}
+\end{figure}
+
+However, due to the map movement mentioned in \cref{subsec:sfm_insufficiencies}, most of the DEM is erased before the DEM converges sufficiently. 
+
+This is shown in \cref{fig:lsd_2_layers_3}. In practice only very few landing sites are detected with these parameters. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/2_layers_3.png}
+\caption{DEM at 100 m with 2 layers after map movement}
+\label{fig:lsd_2_layers_3}
+\end{figure}
+
+A remedy for this is the usage of more layers, resulting in a decreased resolution at the coarsest layer. This way, the discrepancy of the footprints of the incoming points and the cells available is not as big and as a result the DEM is less sparse. It has to be noted however, that using more layers leads to more computational overhead. An example LSD image shortly after initialization with 4 layers is shown in \cref{fig:lsd_4_layers_1}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/4_layers_1.png}
+\caption{LSD DEM at 100 m with 4 layers}
+\label{fig:lsd_4_layers_1}
+\end{figure}
+
+Note that a higher number of layers leads to a stronger pooling effect at the highest resolution layers. In other words, the sparsity of the DEM when using LSD with fewer layers is counteracted with the enhanced pooling of further layers leading to a high resolution layer filled with the same coarse information present at lower layers. Due to the incoming point cloud's large point footprint, there is no higher resolution information to be had. Therefore, resolving the sparse maps with coarse information does not denote a loss of information. At high altitudes we want to find areas with promising landing sites. These don't have to be perfect landing sites themselves yet and serve more as a signifier for later refinement. Thus, using lower resolution information is perfectly nominal.
+
+A more detailed analysis of LSD with various numbers of layers can be found in \cref{chapter:appendix:lSD_layer_analysis}.
 
 \section{Experimental Setup}\label{sec:exp_setup}
 
-The pipeline was tested by repeatedly flying a mission with randomized initial conditions.
-
+The pipeline was tested by repeatedly flying a mission with randomized initial conditions. On each setup 100 flights were performed where each flight was given a maximum of 10 minutes before the next iteration commenced.
+\subsection{Simulated Terrain}\label{subsec:terrain}
 The performed experiments were flown on the following two maps:
 \begin{itemize}
     \item Arroyo Map - Map from the Arroyo Seco area outside the East entrance of the Jet Propulsion Laboratory. Predominantly used map during development
@@ -40,7 +116,7 @@ The performed experiments were flown on the following two maps:
         \caption{Close Up of the Arroyo Map}
         \label{fig:sim_view_arroyo}
     \end{figure}
-    \item Rough Test Map - A control environment designed to prevent LSD from detecting any landing site unless a landing platform is specifically spawned. It was created using blender and applying white noise perturbations to the elevation of a plane. Note that there is no texture projected onto the terrain. Therefore, on this map only ground truth was used.
+    \item Rough Test Map - A control environment designed to prevent LSD from detecting any landing site unless a landing platform is specifically spawned. It was created using blender and applying white noise perturbations to the elevation of a plane. 
     \begin{figure}[h]
         \centering
         \includegraphics[scale=0.285]{images/evaluation/rough_test_map.png}
@@ -58,7 +134,6 @@ The performed experiments were flown on the following two maps:
         \label{fig:rough_map_platform}
     \end{figure}
 \end{itemize}
-\clearpage %HERE
 \subsection{Drone Spawn}
 The drone was either spawned repeatedly from a default location on the ground (The start location from when the actual fields tests were performed) or from a random location. For a simplicity way of  avoiding terrain collisions, the drone was spawned on a randomly positioned disk at 40 m altitude. The start disk's size was only 0.5 m in diameter which prevented it from being considered too good of a landing site by LSD. This is important because the platform implicitly gains quality due to the fact, that it is located higher up than the terrain, leading to a lower distance to the drone when flying at mission altitude.
 \begin{figure}[h]
@@ -76,41 +151,43 @@ The drone was either spawned repeatedly from a default location on the ground (T
 \clearpage %HERE
 
 \subsection{Depth Source}
-As mentioned in \cref{sec:sfm_lsd_eval}, at the time of this work SFM was very fragile as an individual module. Because of this and to evaluate the merged pipeline as opposed to the depth generation module, ground truth depth was used at high altitudes unless specified otherwise. Regardless of whether ground truth or SFM was used, the verification at low altitudes was always performed using the point clouds from the stereo camera depth node.
+As mentioned in \cref{subsec:sfm_insufficiencies}, at the time of this work SFM was very fragile as an individual module. Because of this and to evaluate the landing pipeline as opposed to the depth generation module, ground truth depth was used above the verification altitude. For sake of completeness however, an SFM run is shown in the end as well. Regardless of whether ground truth or SFM was used, the verification at low altitudes was always performed using the stereo camera depth node.
+
+Note that at the rough map introduced in \cref{subsec:terrain}, there is no texture projected onto the terrain. Therefore, on this map ground truth was used exclusively.
 
 \subsection{Success Conditions}
-To determine whether a flight was successful or not, two main metrics were considered. First, whether the landing action in the autonomy was initiated (this happens only after the landing site selection and verification were both successful) and secondly to infer the safety of the rotorcraft, a rosbag was collected and analyzed to check whether either the roll or pitch value exceeded the crash threshold. In practice, a threshold of 1.2 radians or shortly below 70\degree proved to be an accurate decision boundary to detect a drone crash.
+To determine whether a flight was successful or not, two main metrics were considered. First, whether the landing action in the autonomy was initiated (this happens only after the landing site selection and verification were both successful).
+Secondly, for each flight a rosbag was recorded. To infer the safety of the rotorcraft, the bag was analyzed to check whether either the roll or pitch value exceeded the crash threshold. In practice, a threshold of 1.2 radians or shortly below 70\degree proved to be an accurate decision boundary to detect a drone crash.
 
 \subsubsection{Home Landings}
-The drone lands at the home position in the two following cases:
+Landing at the home position defines the behavior when the drone does not navigate towards a landing site but instead uses the stored takeoff coordinates to navigate to the spawn location to land. This happens when no landing sites exist to be chosen.
+
+This occurs in two scenarios:
 \begin{itemize}
-    \item No landing sites exist to be chosen.
+    \item Few landing sites were detected yet failed verification and were therefore banned. Thereafter, no landing sites remained.
+    \item No landing sites were detected in the first place. 
 
-    This happens when very few landing sites were detected yet failed verification and were therefore banned or when no landing sites were detected in the first place. 
-
-    The latter case occurs in two scenarios: 
+    This can happen because of two reasons:
     \begin{itemize}
         \item The overflown terrain simply does not have a single landing site of decent quality. (see the rough map introduced in \cref{sec:exp_setup})
         \item The landing site detection algorithm failed to detect landing sites.
     \end{itemize}
-    In both scenarios, going home is the desired behavior. However, if LSD does not detect landing sites, the run cannot be counted as a success regardless of whether the drone landed safely after taking off.
-
-    Looking at the Arroyo map shown in \cref{fig:sim_view_arroyo} and speaking from development experience, sufficient landing sites should be found on this map. Therefore, landing at home when flying on the Arroyo indicates a landing site pipeline issue.
-    \item A landing site is chosen at the home position.
-
-    This is possible as the stereo camera detects landing sites on the takeoff location when ascending. However, given that the last mission waypoint is sufficiently far away from the takeoff location, the drone should land at a closer location. 
 \end{itemize}
-\subsubsection{Off Board Mode connection Issues}
-As will be presented in the following, connection failures between the PX4 flight controller and the autonomy occurred, leading to the deactivation of the off board mode and therefore the loss of control of the autonomy over the rotorcraft. These issues arose most likely because the MAVROS connection in between failed to send a necessary heartbeat repeatedly and thus the connection was intercepted.
+    
+    In both scenarios, going home is the desired behavior. However, if LSD does not detect landing sites where good candidates should be found, the run cannot be counted as a success regardless of whether the drone landed safely after taking off.
 
-Self-evidently, this did not result in a successful landing and was not counted as such. However, as these connection issues did not occur due to insufficiencies in the pipeline presented in this work, they were not considered failures of the pipeline either. 
+    For instance, looking at the Arroyo map shown in \cref{fig:sim_view_arroyo} and running numerous simulated flights on the terrain, it is clear that sufficient landing sites should be found on this map. Therefore, landing at home when flying on the Arroyo map indicates a landing site pipeline issue.
+\subsubsection{Off Board Mode connection Issues}
+Occasionally connection failures between the PX4 flight controller and the autonomy occurred, leading to the deactivation of the off board mode and therefore the loss of control of the autonomy over the rotorcraft. These issues arose most likely because the MAVROS connection in between failed to send a necessary repeated heartbeat and thus the connection was intercepted.
+
+Self-evidently, this did not result in a guaranteed successful landing and was not counted as such. However, as these connection issues did not occur due to insufficiencies in the pipeline presented in this work, they were not considered failures of the pipeline either. 
 
 Therefore, to conclude the possible success states:
 
 \begin{itemize}
     \item Successful: The drone initiated landing and did not fall over throughout the whole flight.
     \item Connection loss: The autonomy lost the connection to the flight controller and therefore no information can be gathered about this flight and the landing behavior's performance.
-    \item Crash: Either the roll or pitch angle of the drone exceeded the predetermined threshold of 70 degrees. This is a failure of the pipeline.
+    \item Crash: Either the roll or pitch angle of the drone exceeded the predetermined threshold of 70 degrees. This is a definite failure of the pipeline.
     \item Home landing: The drone did not settle at a perceived landing site and returned to the home position instead. On a map with sufficient landing opportunities this indicates a failure. When actually not traversing terrain with valid landing sites as was often the case for the rough terrain shown in \cref{subsec:rough_map_rw}, landing home is the desired behavior.
 \end{itemize}
 \clearpage
@@ -137,10 +214,21 @@ Lastly, red dots indicate landing sites which were detected during a flight whic
 
 In the case of multiple attempts at verifying a landing site, connection lines are drawn between the failed attempts and the final landing indicating which subsequent sites were chosen.
 
+It has to be noted that these plots were generated using non-orthographic background images and the actual landings took place at locations slightly closer to the image center.
+
+As the created points are rather large, hereafter is the empty background image for reference:
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{images/evaluation/high_100m_arroyo_grid.png}
+\caption{Non-orthographic Arroyo background image for visual evaluation of the test flights}
+\label{fig:Arroyo_BG}
+\end{figure}
+
 
 \section{Test Flights}\label{sec:test_flights}
 
-The following tests were performed. Each test consisted of 100 flights.
+The following tests were performed. Each test consisted of 100 flights simulated in Gazebo.
 
 \subsection{Arroyo - Randomized Waypoints}\label{subsec:eval_rand_wp}
 
@@ -153,7 +241,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
      \begin{tabular}{|c|c|c|c|c|}
      \hline
      \# Flights & \# Successes & \# Con. Loss & \# Crashes & \# Home Landing\\ \hline \hline
-     100 & 99 & 1 & 0 & 0 \\
+     100 & 93 & 7 & 0 & 0 \\
      \hline
      \end{tabular}
      \caption{The outcomes of the flights performed. Con. Loss stands for connection loss of the off board mode.}
@@ -161,6 +249,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     \end{table}
 
     The landing attempt numerics are shown here:
+
     \begin{table}[h]
         \begin{center}
          \caption{Landing attempts with fixed takeoff and random waypoint}\vspace{1ex}
@@ -168,7 +257,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
          \begin{tabular}{|c|c|c|c|}
          \hline
          \# Flights & \# Landing on first attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
-         100 & 48 & 45 & 7 \\
+         93 & 58 & 33 & 2 \\
          \hline
          \end{tabular}
         \end{center}
@@ -183,15 +272,23 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     \end{figure}
 
     \subsubsection{Numeric Discussion}
-    \cref{tab:result_random_waypoint} shows the numeric outcome of the flights. 1 timeout occurred but each performed flight by the autonomy was a success, landing safely and controlled. No home landings were necessary which, as described above, indicates a very robust LSD performance. A high number of flights where two landing site verification attempts were performed is also well within acceptable boundaries because the first landing site might as well be used as an indicator to draw the drone closer to an area where high quality sites can be detected using the stereo camera.
+    \cref{tab:result_random_waypoint} shows the numeric outcome of the flights. 7 timeouts occurred but each performed flight by the autonomy was a success, landing safely and controlled. No home landings were necessary which, as described above, indicates a very robust LSD performance. A high number of flights where two landing site verification attempts were performed is also well within acceptable boundaries because the first landing site might as well be used as an indicator to draw the drone closer to an area where high quality sites can be detected using the stereo camera. Twice it was the case that 3 landing attempts were needed.
 
     \subsubsection{Visual Discussion}
-    Let's consider the landing image \ref{fig:landing_attempts_random_WP}. The final landing sites indicated in green span exclusively decent landing areas. The verification attempts that fell short are indicated with yellow and annotated by a line connection to the successful attempt thereafter. Subsequent landing sites were always detected short distances away from failed candidates which is exactly the correct behavior in order to not lose time pursuing a far away landing site. As indicated in \cref{subsec:heuristics} this is thanks to the verification altitude which incentivizes the selection of other landing sites detected at the current verification altitude. Lastly the attempt which timed out is hardly visible indicated in red. %TODO: make appendix with autonomy log of failed runs and show timeout.
+    Let's consider the landing image \ref{fig:landing_attempts_random_WP}. The final landing sites indicated in green span exclusively decent landing areas. The verification attempts that fell short are indicated with yellow and annotated by a line connection to the successful attempt thereafter. Subsequent landing sites were always detected short distances away from failed candidates which is exactly the correct behavior in order to not lose time pursuing a far away follow-up landing site. As indicated in \cref{subsec:heuristics} this is thanks to the verification altitude which incentivizes the selection of other landing sites detected at the current verification altitude. Lastly the attempt which chose a landing sites before losing the connection to the flight controller is indicated in red. 
+    
+    %TODO: make appendix with autonomy log of failed runs and show timeout.
 
     The last thing to mention is the clustering of the landing sites around the takeoff location. The reason for this is twofold:
     \begin{itemize}
-        \item \textbf{Quality}: The takeoff position was also the takeoff position for the physical flights in performed in the field. It was chosen exactly because of its even and smooth characteristics. Therefore, it is no surprise that many landing sites were detected around that location.
-        \item \textbf{OMG Conversion}: During ascent, when using either stereo or ground truth depth, the same area is perceived repeatedly. This leads to a convergence in certainty in the map aggregation step of LSD. As landing sites have a higher chance of being detected on terrain with a low uncertainty, the takeoff position is most likely selected until it leaves the rolling buffer map.
+        \item Quality: 
+        
+        The takeoff position in the simulation was chosen to be at the same location where the field tests were started in the real world. It was chosen exactly because of its even and smooth characteristics. Therefore, it is no surprise that many landing sites were detected around that location. 
+        \item OMG Conversion: 
+        
+        During ascent, when using either stereo or ground truth depth, the same area is perceived repeatedly. This leads to a convergence of OMG certainty in the map aggregation step of LSD. As landing sites have a higher chance of being detected on terrain with a low uncertainty, this converged takeoff area is most likely selected repeatedly and sent to the autonomy until it leaves the rolling buffer map. 
+        
+        Note: the autonomy accounts for repeated detection of the same landing site. LSD however does not. Therefore, in such a case where the same terrain has been viewed for a long period, it is possible for the exact same landing site proposals to be sent to the autonomy repeatedly.
     \end{itemize}
 
     This test is a very clear demonstration of the applied chosen heuristics. The best landing site detected is very likely one that is detected at the takeoff position. Around this clustering of landings there is notable space of no attempts performed. This can be attributed to the competing motives of the landing site selection. The quality of the landing site defines the autonomy's choice until the drone's distance to that landing site is too big, and a closer one is chosen. 
@@ -247,7 +344,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
          \label{tab:result_complete_rand}
          \begin{tabular}{|c|c|c|c|c|}
          \hline
-         \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+         \# Flights & \# Successes & \# Con. Losses & \# Crashes & \# Home Landing\\ \hline \hline
          100 & 94 & 6 & 0 & 0 \\
          \hline
          \end{tabular}
@@ -259,37 +356,37 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
          \label{tab:land_nums_complete_rand}
          \begin{tabular}{|c|c|c|c|c|}
          \hline
-         \# Flights & \# 1 attempt & \# 2 attempts & \# 3 attempts & \# 4 attempts\\ \hline \hline
+         \# LS Landings & \# 1 attempt & \# 2 attempts & \# 3 attempts & \# 4 attempts\\ \hline \hline
          94 & 88 & 6 & 0 & 0 \\
          \hline
          \end{tabular}
         \end{center}
     \end{table}
 
-    And the visual outcome:
+    And the visual outcome is shown in \cref{fig:landing_attempts_complete_rand}.
 
-    \begin{figure}[h]
+    \begin{figure}[h!]
         \begin{center}
-            \includegraphics[scale=0.25]{images/evaluation/landings_complete_randomized_GT.png}
+            \includegraphics[scale=0.5]{images/evaluation/landings_complete_randomized_GT.png}
             \caption{Landing attempts with randomized drone spawn - Green: successful landing, Yellow: verification failure, Blue: landing at home position}
             \label{fig:landing_attempts_complete_rand}
         \end{center}
     \end{figure}
 
     \subsubsection{Numeric Discussion}
-    6 timeouts occurred in this 100 flight experiment. Of the successful 94 runs, 88 landed at the very first attempt and only 6 needed one more landing site.
+    6 timeouts occurred in this 100 flight experiment. Of the successful 94 runs, 88 landed at the very first attempt and only 6 needed one more landing site. This is a pleasant outcome which is of course correlated with the ground truth's high accuracy. Nevertheless, it has to be noted that multiple landing attempts at different sites is no indication of inferior performance. 
 
     The relatively high number of timeouts is unfortunate but as previously mentioned, not a fault of the presented pipeline and therefore merely unfortunate but not worrying.
 
 
     \subsubsection{Visual Discussion}
-    Compared to \cref{fig:landing_attempts_random_WP}, the landing attempts are more spread out over the map. Fewer landings were attempted at the takeoff position. This is the case because the area wasn't always covered by the mission's trajectory and the drone spent less time above that area as it spawned randomly. Thus, the elevation map did not converge at that location leading to a smaller chance of landing sites being detected there. 
+    Compared to \cref{fig:landing_attempts_random_WP}, the landing attempts are more spread out over the map and fewer landings were attempted at the takeoff position. This is the case because the random mission trajectories didn't always cover this area and since the drone spawned at randomized locations, it did not spend the time during takeoff to repeatedly scan this plateau. Thus, the elevation map did not converge at that location leading to a smaller chance of landing sites being detected there. 
     
-    As for the fixed spawn location, the second attempts were always at landing sites close by which is desirable.
+    As for the fixed spawn location, the second attempts were always at landing sites which were close to the false previous candidates. This is of course desirable to save time.
 
-    Lastly, the selected landing sites were all at plausible location. Certain locations seem unfavorable but only on this plot due to the non-orthographic background image.
+    Lastly, the selected landing sites were all at plausible locations. To verify this, consider the empty reference image shown in \cref{fig:Arroyo_BG}
 
-\subsection{Rough Map - Mission over Platforms}\label{subsec:rough_coverage}
+\subsection{Rough Map - Mission Covering Platforms}\label{subsec:rough_coverage}
         \begin{figure}[h]
             \centering
             \includegraphics[scale=0.24]{images/evaluation/rough_over_platforms.png}
@@ -307,7 +404,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
              \label{tab:result_rough_covered}
              \begin{tabular}{|c|c|c|c|c|}
              \hline
-             \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+             \# Flights & \# Successes & \# Con. Losses & \# Crashes & \# Home Landing\\ \hline \hline
              100 & 99 & 1 & 0 & 0 \\
              \hline
              \end{tabular}
@@ -351,11 +448,12 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
              \label{tab:final_landing_platform}
              \begin{tabular}{|c|c|c|c|}
              \hline
-             \# Landings & \# Landing on Earth (spawn) & \# Mars (1st platform) & \# Moon (2nd platform)\\ \hline \hline
+             \# Landings & \# On Earth (spawn) & \# Moon (1st pf)  & \# Mars (2nd pf)\\ \hline \hline
              99 & 4 & 2 & 93 \\
              \hline
-             \end{tabular}
-            \end{center}
+            \end{tabular}
+        \end{center}
+        \caption{Landing locations chosen by this experiment - The Earth platform denotes the small spawn location of the drone. The Moon corresponds to the platform covered by the first mission waypoint and the Mars platform is where the missions ended.}
         \end{table}
 
         This result shows as desired, that the last platform which is the one closest to the drone at the time of the last waypoint, was chosen most of the time. 
@@ -386,7 +484,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
          \label{tab:result_rough_rand}
          \begin{tabular}{|c|c|c|c|c|}
          \hline
-         \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+         \# Flights & \# Successes & \# Con. Losses & \# Crashes & \# Home Landing\\ \hline \hline
          100 & 98 & 2 & 0 & 54 \\
          \hline
          \end{tabular}
@@ -417,9 +515,8 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     Looking at \cref{tab:result_rough_rand}, what stands out are the 54 times the drone went to the home position. This is the desired behavior, when no landing site is found and is therefore to be considered a success. It is also rather expected as the minimal search pattern radius likely prevents the drone from finding additional landing sites. Like for the case when the platforms were covered by the mission waypoints, the landing sites were almost always verified as they were by design of high quality. 
     
-    %TODO analyze also how many lses were found using the additional patterns.
 
-\subsection{Rough Map - Random Waypoints with Larger Search Radius}
+\subsection{Rough Map - Random WPs with Larger Search Radius}
 
     When flying the same experiment setup as introduced in \cref{subsec:rough_map_rw} but with a larger search pattern radius we arrive at the following outcome:
 
@@ -429,7 +526,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
          \label{tab:result_rough_rand_lr}
          \begin{tabular}{|c|c|c|c|c|}
          \hline
-         \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
+         \# Flights & \# Successes & \# Con. Losses & \# Crashes & \# Home Landing\\ \hline \hline
          100 & 98 & 2 & 0 & 34 \\
          \hline
          \end{tabular}
@@ -467,16 +564,16 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     As mentioned in \cref{subsec:sfm_insufficiencies}, SFM's implementation at the time of this work was not well suited for high altitude flights. For sake of completeness however, the pipeline was flown with SFM and analyzed in the following. 
 
-    In this test the setup was the same as for \cref{subsec:compl_rand} with the exception, that SFM was used for the depth generation.
+    The setup was the same as for \cref{subsec:compl_rand} with randomized spawn and mission locations. However, this time SFM was used for the depth generation.
 
     \begin{table}[h]
         \begin{center}
-            \caption{Results - Rough map with platform coverage}\vspace{1ex}
-            \label{tab:result_rough_covered}
+            \caption{Results - SFM with random spawn and way points}\vspace{1ex}
+            \label{tab:result_SFM}
             \begin{tabular}{|c|c|c|c|c|}
             \hline
-            \# Flights & \# Successes & \# Timeouts & \# Crashes & \# Home Landing\\ \hline \hline
-            100 & 77 & 23 & 0 & 0 \\ %TODO: replace with values
+            \# Flights & \# Successes & \# Con. Losses & \# Timeouts & \# Home Landing\\ \hline \hline
+            100 & 77 & 18 & 0 & 5 \\ 
             \hline
             \end{tabular}
         \end{center}
@@ -484,12 +581,12 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     \begin{table}[h]
         \begin{center}
-            \caption{Landing attempts rough map with platform covering mission}\vspace{1ex}
-            \label{tab:land_nums_rough_coverage}
+            \caption{Landing attempts of successful flights when flown with SFM}\vspace{1ex}
+            \label{tab:land_nums_SFM}
             \begin{tabular}{|c|c|c|c|}
             \hline
-            \# Flights & \# Landing on first attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
-            20 & 20 & 0 & 0 \\%TODO: replace
+            \# Flights & \# 1st attempt & \# 2 attempts & \# 3 attempts\\ \hline \hline
+            77 & 45 & 30 & 2   \\
             \hline
             \end{tabular}
         \end{center}
@@ -497,19 +594,28 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     \begin{figure}[h]
     \centering
-    \includegraphics[scale=0.5]{images/evaluation/landing_rough_covered.png}
-    \caption{Landing attempt locations for the rough map with platform covered by the mission}
-    \label{fig:land_rough_covered} %TODO: replace
+    \includegraphics[scale=0.5]{images/evaluation/landing_SFM.png}
+    \caption{Landing attempt locations when flying a mission with randomized drone spawns and randomized way points with SFM}
+    \label{fig:land_SFM} 
     \end{figure}
 
-    As both the spawn platform and the landing platforms where spawned randomly, evaluating the visual outcome is redundant. For sake of completion however, it is still displayed.
 
     \subsubsection{Numerical Discussion}
-    One timeout occurred, but each attempt at landing resulted in a success. 
-
-    This proves that LSD does in fact not perceive convincing landing sites where there should be none. Additionally, as the drone never went home, this proves that LSD also detects landing sites where there should be safe landing zones.
+    Compared to the other tests, in this setting many connection losses occurred. 
     
-    Each landing site selected was verified. This convincing result is not surprising as the inserted landing sites are perfect landing sites and are therefore unlikely to trigger a verification failure.
+    Additionally, the nominal procedure timed out 5 times meaning that numerous landing site verifications were necessary which in the end prevented the flight from completing within the 10 minutes before the next iteration was started. 
+
+    This occurred because of two reasons:
+
+    \begin{itemize}
+        \item The landing site proposals supplied by SFM are of less quality than the ground truth leading to a higher probability of necessitating the selection of another landing site. 
+        \item Secondly, overruling SFM measurements using stereo inputs takes substantial time. In practice the 15 s verification duration was not always sufficient to yield good estimates of the surrounding. Because of this, further landing sites of lower quality were selected which were detected on SFM data from 100 m altitude. This lead to further failures. Secondly, these landing sites were also more often farther away which made the procedure slower still.
+    \end{itemize}
+
+    This definitely has to be accounted for. As mentioned in \cref{subsubsec:setup:aggregation}, a potential remedy for excessive convergence could be time inflation of the OMG cell's of the elevation map.
+    
+    \subsubsection{Visual Discussion}
+    The first thing to note is the high number of red points. This is both because of the numerous connection losses and because of the landing attempts which took too long and therefore didn't lead to a landing. The landing sites are in general of less quality than for the GT cases. Lastly as can be seen in a successful run, subsequent landing sites were not always close by. As previously mentioned this occurred when the stereo measurements did not overwrite the SFM information in time so that other, far away SFM landing sites were selected.
 
 \section{Theoretical Edge Cases}
 \cref{sec:test_flights} shows that the implemented landing procedure performs well only terrain that is roughly comparable to that on Mars. These tests represent rather ordinary cases though. In the following, a number of theoretical edge cases are introduced and their handling by this work's pipeline discussed.
