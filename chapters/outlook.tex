@@ -5,27 +5,29 @@
 
 Before putting together the entire LORNA pipeline shown in \cref{fig:lorna_setup}, the fundamental building blocks need to work well. 
 
-First and foremost, the entire LORNA approach builds upon the foundational depth acquisition using structure from motion. This method needs to work robustly during any lateral motion. Specifically, SFM must be more robust concerning yaw rotations and pitch angles during initialization.
+Therefore, as the entire LORNA approach builds upon the foundational depth acquisition using structure from motion, this method must work robustly during lateral motion. Specifically, SFM must be more robust concerning yaw and pitch angles, initialization in general, and high-altitude keyframe handling.
+
+LSD is very robust regarding the reception of point clouds from different depth sources. Once LSD's DEM converged, however, incoming measurements sometimes had trouble overwriting the existing information. This could be resolved by adding time inflation to the cells in the elevation map to assign less weight to older measurements.
 
 The map-based localization algorithm, which reduces the global drift of the state estimator, is not crucial for this thesis but a necessary component for the LORNA pipeline. This node was still in development at the time of this writing and would need to be ready to finish the whole LORNA mission concept.
 
 \section{Putting together the current pipeline}
 
-Given that SFM works as desired, the pipeline can be put together. 
+Given that the individual nodes work as desired, the pipeline can be put together. 
 
-The state estimator can be combined with LORNA's vision-based pipeline and autonomy framework and deployed on embedded hardware to supply the process with onboard pose estimates rather than ground truth. 
+The state estimator can be combined with LORNA's vision-based pipeline and autonomy framework and deployed on embedded hardware.
 
 The question of the embedded processor's computational feasibility will arise, and a decision will have to be made about the processing unit.
 
 \section{Expansion on the current approach}
 
-This project endeavors to fly science missions on Mars with onboard state estimation and autonomous landing capabilities. Naturally, this mission could be expanded in various domains to interact more with the environment. However, in the following, I will lay out possible enhancements for this approach in pursuit of the currently pronounced objectives.
+This project endeavors to fly science missions on Mars with onboard state estimation and autonomous landing capabilities. Naturally, this mission could be expanded in various domains to interact more with the environment. However, in the following, I will outline possible enhancements for this approach to pursue the currently pronounced objectives.
 
 \textbf{SFM}
 
-To make the keyframe switch and the associated LSD map movement less radical, it might be beneficial to change the keyframe selection approach to always switch out the keyframes as long as incoming frames are above a certain quality threshold. This would lead to more frequent yet smaller map movements, allowing LSD to retain most of the map at a time and, therefore, many more landing sites.
+To make the keyframe switch and the associated LSD map movement less radical, it might be beneficial to change the keyframe selection approach to always switch out the keyframes as long as incoming frames are above a certain quality threshold. This would lead to more frequent yet smaller map movements, allowing LSD to retain most of the map consistently and, therefore, many more landing sites.
 
-A possible change to slightly increase computational efficiency and ease of understanding would be to include the stereo camera node within the SFM node. In this case, the laser range finder measurements would decide between the two algorithms to be performed. That way, there is only one depth supplying node that needs to be run during flight.
+A possible change to slightly increase computational efficiency and ease of understanding would include the stereo camera node within the SFM node. In this case, the laser range finder measurements would decide between the two algorithms to be performed. That way, there is only one depth supplying node that needs to be run during flight.
 
 \textbf{LSD}
 
@@ -40,3 +42,7 @@ The modular architecture of the autonomy allows for a manifold of incremental be
     \item Instead of pursuing a single landing site, clusters of potential sites could be considered for initial deployment. That way, less weight is placed on the first site, which is pursued in favor of an increased chance of detecting a high-quality landing site on the second attempt.
     \item Furthermore, the weighing of the different properties entering the heuristic of a landing site is alterable. This should be used to change the weight distribution of these characteristics depending on the battery level. For instance, the distance to the drone could be weighed higher in case of a low battery level.
 \end{itemize}
+
+\textbf{Gazebo Simulator}
+
+Gazebo, despite being free to use and having a reputation for being user-friendly, will probably have to be replaced for future development. This is because it lacks maintenance, scarce documentation, occasional errors in the software, and a general feeling of unreliability in its performance. 

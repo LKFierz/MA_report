@@ -11,7 +11,7 @@
 % som/bt/st/mt: Studies on Mechatronics, Bachelor Thesis, Semester Thesis, Master Thesis
 % fs/hs: Spring term, Autumn term
 % german/english: German/English
-\usepackage[mt,hs,english]{packages/ethrsl}
+\usepackage[mt,fs,english]{packages/ethrsl}
 
 % Activate for german language
 %\usepackage{german}
@@ -58,55 +58,49 @@
 % \input{chapters/declaration}
 % \clearpage
 % \input{chapters/transfer.tex}
-% \includepdf[pages=-]{chapters/declaration.pdf}
+\includepdf[pages=-]{chapters/declaration.pdf}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Table on contents
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Table of Contents depth (TODO change if necessary)
 \setcounter{tocdepth}{2}
-
+\input{chapters/preface}
+\clearpage
+\input{chapters/acknowledgements.tex}
+\clearpage
 \tableofcontents
-\input{chapters/acronyms.tex}
-% \clearpage
+\clearpage
 % \cleardoublepage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Chapters standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \input{chapters/preface}
-% \cleardoublepage
+
 \input{chapters/abstract}
+\clearpage
 \cleardoublepage
 \pagestyle{fancy}
 \pagenumbering{arabic}
-% \input{chapters/chapter}
-% \cleardoublepage
-% \input{chapters/introduction.tex}
-% \clearpage
-% \input{chapters/related_work.tex}
-% \clearpage
-% \input{chapters/system_overview.tex}
-% \clearpage
-% \input{chapters/methodology.tex}
-% \clearpage
-% \input{chapters/stereo_camera_depth.tex}
-% \clearpage
-% \input{chapters/autonomous_landing_procedure.tex}
-% \clearpage
+\input{chapters/acronyms.tex}
+\clearpage
+\input{chapters/introduction.tex}
+\clearpage
+\input{chapters/related_work.tex}
+\clearpage
+\input{chapters/system_overview.tex}
+\clearpage
+\input{chapters/methodology.tex}
+\clearpage
+\input{chapters/stereo_camera_depth.tex}
+\clearpage
+\input{chapters/autonomous_landing_procedure.tex}
+\clearpage
 \input{chapters/evaluation.tex}
 \clearpage
-% \input{chapters/conclusion.tex}
-% \clearpage
-% \input{chapters/outlook.tex}
-% \clearpage
-% Method
-% Experiments
-% Results
-% Conclusion
-% Future Work
-% Acknoledgements
-% Appendix
+\input{chapters/conclusion.tex}
+\clearpage
+\input{chapters/outlook.tex}
 \clearpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,13 +121,14 @@
 % Appendix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \appendix
-% \input{chapters/appendix/appendix_GT_error.tex}
-% \clearpage
-% \input{chapters/appendix/appendix_drone.tex}
-% \clearpage
-% \input{chapters/appendix/appendix_runs.tex}
-% \clearpage
-% \cleardoublepage
+\input{chapters/appendix/appendix_runs.tex}
+\clearpage
+\input{chapters/appendix/appendix_layer_analysis.tex}
+\clearpage
+\input{chapters/appendix/appendix_drone.tex}
+\clearpage
+\input{chapters/appendix/appendix_GT_error.tex}
+\cleardoublepage
 % \input{chapters/appendix_datasheets}
 
 \end{document}

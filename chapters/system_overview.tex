@@ -1,17 +1,5 @@
-\documentclass{article}
-\usepackage{graphicx} % Required for inserting images
-
-\title{MA}
-\author{fierz.lasse }
-\date{June 2024}
-
-\begin{document}
-
-\maketitle
-
-
-
 \chapter{System Overview}
+\label{sec:sys_overview}
 
 \cref{fig:lorna_setup} shows the high-level architecture of the LORNA concept. 
 
@@ -56,7 +44,7 @@ I almost exclusively used a simulated drone to test the algorithms in this work.
 \end{figure}
 
 
-As the entire software stack of the LORNA project depends on ROS instead of ROS2, a bridge was used to convert the sensor information from Gazebo to ROS2 and from ROS2 to a ROS topic.
+As the entire software stack of the LORNA project depends on ROS instead of ROS2, a bridge was used to convert the sensor information from Gazebo Garden to ROS2 and from ROS2 to a ROS topic.
 
 Most development during this work was performed on the Arroyo map shown in \cref{fig:arroyo_intro}. The Arroyo Seco is the area outside the Jet Propulsion Laboratory in Pasadena, California. Though not strikingly similar to Mars' landscape at first glance, the Arroyo contains varying terrain, including small rocks and uneven ground, which makes it a good test ground for UAV Mars landing applications.
 
@@ -70,7 +58,7 @@ Most development during this work was performed on the Arroyo map shown in \cref
 
 \section{Landing Site Detection Pipeline}\label{sec:setup:LSP}
 
-The landing site detection pipeline consists of two nodes. A structure from motion node \citep{SFM} which creates a point cloud using a keyframe-based stereo depth approach on monocular images and a landing site detector algorithm \citep{LSD1, LSD2} which aggregates the depth measurements into a rolling buffer-based multi-resolution elevation map and segments landing sites on the created DEM. These found landing sites are then supplied to the autonomy. 
+The landing site detection pipeline consists of two nodes. A structure from motion node \citep{SFM} which creates a point cloud using a keyframe-based stereo depth approach on monocular images and a landing site detector algorithm \citep{LSD1, LSD2} which aggregates the depth measurements into a rolling buffer-based multi-resolution elevation map and segments landing sites on the created DEM. These found landing sites should then be supplied to the autonomy. 
 
 \subsection{Structure From Motion (SFM)}\label{subsec:setup:SFM}
 
@@ -112,14 +100,14 @@ Before 3D reconstruction, the poses are refined using a bundle adjustment algori
 \begin{figure}[ht!]
     \centering
     \includegraphics[scale=0.5]{images/system_overview/BA.png}
-    \caption{Bundle Adjustment Procedure as shown in \citet{BA}}
+    \caption{Bundle Adjustment Schematic as shown in \citet{BA}}
     \label{fig:BA}
 \end{figure}
 
 \cref{fig:BA} shows the change in reprojection, which the bundle adjustment optimization technique endeavors to diminish. Generally, it does so by considering a number of keyframes and optimizing their poses and the camera parameters used to acquire the images. In this case, only the pose refinement is considered for the keyframes in question.
-\subsubsection{Stereo Depth}\label{subsubsec:SFM_stereo}
+\subsubsection{Monocular Stereo Depth}\label{subsubsec:SFM_stereo}
 
-The crucial step of 3D reconstruction can be performed after choosing adequate keyframes and refining their poses. For this, the keyframes are checked to have sufficient but not fully coinciding image overlap with the new image and a small enough baseline inclination so that assuming the same altitude above ground is reasonable. If the checks are successful, the keyframe with the largest baseline to the new frame is chosen for the stereo procedure. 
+This crucial step of 3D reconstruction can be performed after choosing adequate keyframes and refining their poses. For this, the keyframes are checked to have sufficient but not fully coinciding image overlap with the new image and a small enough baseline inclination so that assuming the same altitude above ground is reasonable. If the checks are successful, the keyframe with the largest baseline to the new frame is chosen for the stereo procedure. 
 
 Note that if all keyframes comply with these checks, then the oldest keyframe is always used for the stereo depth creation. Therefore, in practice, the reference view for the depth image is the oldest keyframe for a few iterations until the overlap with the new image is too small, and the oldest keyframe is switched out. This results in a small jump in the depth image's reference location. 
 
@@ -136,7 +124,7 @@ The disparity values can be derived using the two frames and the parallax distan
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.45]{images/system_overview/sfm_depth_image.png}
+\includegraphics[scale=0.4]{images/system_overview/sfm_depth_image.png}
 \caption{SFM depth image created from the stereo approach}
 \label{fig:sfm_depth_image}
 \end{figure}
@@ -150,6 +138,7 @@ Then, using these depth values of the individual and the camera parameters, the 
 \caption{SFM point cloud visualization in RViz}
 \label{fig:sfm_point_cloud}
 \end{figure}
+\clearpage
 
 \subsection{Landing Site Detection (LSD)}\label{subsec:setup:LSD}
 
@@ -184,7 +173,7 @@ This shift is visualized in \cref{fig:map_movement}. Note the images\footnote[1]
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/system_overview/map_movement.png}
+    \includegraphics[scale=0.27]{images/system_overview/map_movement.png}
     \caption{Schematic LSD map movement procedure: Outlined with orange is the retained part of the DEM (in the second frame, it is overlaid by part of the new input and thus outlined by a dashed line). The blue image represents the next input point cloud, and the red dot indicates the starting index where the new point cloud will start to be stored. Both images were created using AI.}
     \label{fig:map_movement}
 \end{figure}
@@ -197,6 +186,7 @@ Landing sites are then detected on this created DEM. This is done using a roughn
 The roughness check is done for each resolution layer of the DEM. To assess the roughness around a cell, all surrounding cells within a predefined proximity threshold are considered, and the maximum value is stored. The computational cost of the hazard segmentation is dominated by the roughness checks at the lower layers. Therefore, to make it more efficient, a minimum and maximum buffer were introduced, respectively. This allows the storage of the extreme values at a given location, and then for the roughness assessment of a neighboring cell, the knowledge about that mostly overlapping area can be used. With this, only the new margin of cells has to be considered for minimum/maximum candidates of subsequent cells. Finally, the roughness of a cell is the difference between the maximum and minimum value in that cell's vicinity.
 
 A visualization of this procedure is shown in \cref{fig:lsd_roughness_check}:
+\clearpage %HERE
 
 \begin{figure}[ht!]
     \centering
@@ -207,7 +197,7 @@ A visualization of this procedure is shown in \cref{fig:lsd_roughness_check}:
 
 As the slope of a location depends on a larger encompassing area around a cell, the assessment of the slope at the highest (coarsest) layer is sufficient. For each cell in the top layer and the surrounding area, a plane is fitted using the linear least squares equation $Ax = b$ where A is a matrix containing the x and y coordinates and a homogeneous coordinate for the plane's offset in each row. The solution vector x contains the plane's properties $\left(N_x, N_y, d\right)$ where $N_x$ and $N_y$ define the plane's normal vector's orientation and $d$ is the plane's offset. Note that $N_z$ was fixed to be 1. The maximum inclination can then be calculated as the angle between the normalized normal vector and the z-axis $\theta = \arccos\left(\frac{N \cdot e_z}{||N||}\right)$
 
-If the roughness and inclination values lie within the acceptance threshold, the spot is recognized as a landing site and marked as such in a binary landing map. 
+If the roughness and inclination values lie within the acceptance threshold, the spot is recognized as a landing site and marked as such in a binary landing map.(\ref{fig:ls_map})
 
 \begin{figure}[ht!]
     \centering
@@ -218,7 +208,7 @@ If the roughness and inclination values lie within the acceptance threshold, the
 
 \subsubsection{Landing Site Selection}\label{subsubsec:setup:ls_select}
 
-After applying a distance transform on the landing site map, which yields the minimum pixel distance to a non-landing site, non-maximum suppression is performed. In this maximum peak detection, only N landing sites are selected, which have a size that is at least bigger than the largest landing site multiplied by a certain diminutive factor and are sufficiently far away from another peak to be considered an actually distinct landing site.
+After applying a distance transform on the landing site map, which yields the minimum pixel distance to a non-landing site, non-maximum suppression is performed. In this maximum peak detection, only N landing sites are selected, which have a size that is at least bigger than the largest landing site multiplied by a certain diminutive factor and are sufficiently far away from another peak to be considered an actually distinct landing site. The non-maximum suppression on the landing site sizes is shown in \cref{fig:non_max_sup}.
 
 \begin{figure}[ht!]
     \centering
@@ -226,6 +216,8 @@ After applying a distance transform on the landing site map, which yields the mi
     \caption{Non-maximum suppression: the three best landing sites at any given iteration are chosen, of which the very best is encircled.}
     \label{fig:non_max_sup}
 \end{figure}
+
+\clearpage %HERE
 
 Lastly, their positions are refined by applying a mean shift algorithm for a few iterations. This algorithm uses a Gaussian kernel, which considers the roughness, normalized distance transform, and the uncertainty of the cells in the sampled region. The exact implementation is shown in \citet{LSD2}. Selecting multiple peaks at any given time is useful, as the mean shift algorithm is prone to local minima. So having multiple candidates and applying the mean shift algorithm to each one individually makes selecting a good landing site more probable.
 
@@ -238,31 +230,29 @@ Lastly, their positions are refined by applying a mean shift algorithm for a few
 
 \cref{fig:ls_map_nps} shows the landing map with the final shifted maximum area landing sites. These optimized landing site candidates are indicated with the blue crosses. 
 
-\clearpage %HERE
 
 \subsubsection{Debug Images}
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/system_overview/lsd_debug_image.png}
+    \includegraphics[scale=0.23]{images/system_overview/Flagship.png}
     \caption{LSD Debug Image - Left: DEM, Middle: Uncertainties, Right: LS Map}
-    \label{fig:lsd_debug} %Replace with SFM LSD image here
+    \label{fig:lsd_debug} 
 \end{figure}
 
 \begin{figure}[ht!]
     \centering
-    \includegraphics[scale=0.25]{images/system_overview/lsd_debug_reference.png}
-    \caption{Gazebo Simulation Reference}
+    \includegraphics[scale=0.28]{images/system_overview/Flagship_ref.png}
+    \caption{Monocular images used for stereo as reference}
     \label{fig:lsd_debug_ref}
 \end{figure}
 
 The landing site detection debug image is a good comprehensive visualization of the landing site detection algorithm. 
 
-On the left, the multi-resolution map displays the same terrain area in different resolutions. Red pixels are closer, blue pixels are further away.
+\cref{fig:lsd_debug} shows such a debug image. On the left, the multi-resolution map displays the same terrain area in different resolutions. Red pixels are closer, blue pixels are further away. In the middle, one can see the uncertainties of the detected points. Blue signals a low uncertainty, while red denotes a high uncertainty. On the right is the binary landing site map mentioned above. Green indicates valid landing sites, and the blue crosses indicate the chosen non-maximum suppressed and mean-shifted landing sites.   
 
-In the middle, one can see the uncertainties of the detected points. Blue signals a low uncertainty, while red denotes a high uncertainty. 
-
-On the right is the binary landing site map mentioned above. Green indicates valid landing sites, and the blue crosses indicate the chosen non-maximum suppressed and mean-shifted landing sites.   
+\cref{fig:lsd_debug_ref} shows the monocular images used by SFM to create the point cloud that SLD built the DEM with.
+\clearpage %HERE
 
 \section{Autonomy}\label{sec:setup:autonomy}
 
@@ -334,7 +324,7 @@ The blackboard is yet another singleton entity within the autonomy that allows i
 
 It is implemented using a template-based approach so that any variable can be directly stored and retrieved dynamically without changing the structure of the blackboard.
 
-\subsection{Finite-State Machine}
+\subsection{Finite-State Machine (FSM)}
 
 Before going into the state machine implementation of the autonomy framework, the finite-state machine's working principle is explained:
 
@@ -343,6 +333,8 @@ Before going into the state machine implementation of the autonomy framework, th
 A finite-state machine is a mathematical model of computation that allows the reactive implementation of a system with a finite number of states. It is defined by a finite set of possible states with an initial state, the transition rules in between these states, the events that trigger these transitions, and the actions which are performed when the system is in a given state. It provides a very clearly structured implementation of the various states that a system can be in and is, therefore, a matching choice for implementing a rotorcraft mission.
 
 A state machine continuously executes a tick. An executed tick carries out the action associated with the state in which the state machine currently resides. Depending on the output of that action, a transition event is triggered, moving the state machine from one state to another. This way, the decision flow is propagated throughout the state machine until the behavior is concluded. This conclusive state, in turn, also has a transition that allows the state machine to start over again.
+
+\clearpage %HERE
 
 \subsubsection{The Finite-State Machine in the Autonomy Framework}
 
@@ -353,7 +345,33 @@ A state machine continuously executes a tick. An executed tick carries out the a
     \label{fig:state_machine}
 \end{figure}
 
-In our case, the autonomy itself is a pseudo-state machine, continuously executing a tick. During nominal conditions, this simply denotes a tick in the finite-state machine. In the case of a health event, however, the state machine handles the health event based on the state in which the FMS is currently. For instance, if it arises during initiation, the state machine simply transitions to the termination state, aborting the flight. In contrast, if the FSM's current state is the mission state, the rotorcraft immediately returns to the home position to land.
+In our case, the autonomy itself is a pseudo-state machine, continuously executing a tick. During nominal conditions, this simply denotes a tick in the finite-state machine. The autonomy's state machine consists of the following states shown in \cref{fig:state_machine}: 
+
+\begin{itemize}
+    \item Idle
+    
+    The state machine's startup state.
+    \item Init - initialization
+    
+    The autonomy's global parameter server is started and the landing site manager, and the connector are initialized to start processing incoming information.
+    \item PreMissionChecks
+    
+    The autonomy performs the last checks before the mission is started. These include a pre-arm check, a battery check and an actuator check.
+    \item Takeoff
+    
+    The drone takes off using the MAVLink connection to the flight controller and the given takeoff altitude.
+    \item Mission
+    
+    The drone navigates to each waypoint given in the mission plan.
+    \item Landing 
+
+    The reactive landing sequence is initiated which uses detected landing sites and the retained takeoff location if needed.
+    \item Terminate 
+    
+    This is the end state of an executed autonomous flight. If any node executed within a state fails, the transition to the Terminate state is made as well.
+\end{itemize}
+
+In the case of a health event, however, the state machine handles the health event based on the state in which the FMS is currently. For instance, if it arises during initiation, the state machine simply transitions to the termination state, aborting the flight. In contrast, if the FSM's current state is the mission state, the rotorcraft immediately returns to the home position to land.
 
 In each state during a state machine tick, the respective behavior node is executed. Most often, this is a single action node. A behavior tree is used for more complicated procedures. This is, for instance, the case for the landing state. For this thesis, the landing node indicated in bold in \cref{fig:autonomy} is the most crucial part of the state machine. This is where the adaptive landing decisions are made to choose an adequate landing zone and orchestrate safe traversal to that location before finally landing on the surface.
 

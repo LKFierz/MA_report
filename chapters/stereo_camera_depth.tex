@@ -43,7 +43,7 @@ With these properties and estimating a subpixel-precision disparity error of 0.5
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.24]{images/stereo_camera_depth/stereo_limit.png}
+    \includegraphics[scale=0.32]{images/stereo_camera_depth/stereo_limit.png}
     \label{fig:stereo_limit}
 \end{figure}
 
@@ -58,6 +58,8 @@ Like Structure from Motion, the stereo depth instance is a ROS node supplied wit
 \subsection{Stereo Setup Overview}
 
 \cref{fig:drone_sim_setup} shows the drone setup in the simulation with the stereo camera. The stereo camera pair is indicated with the opaque boxes. The large distance to the drone's core is necessary to avoid capturing the landing feet in the image due to the simulation model's discrepancy with the physical drone. As presented in \cref{ch:drone} the drone hardware has landing skids that are spread significantly farther apart than for the simulated model. That is why, when using the stereo camera mounted at the core of the physical drone, the mainstays are not visible in the images detected. In the simulation, they would be detected unless the stereo cameras were positioned further from the rotorcraft's center as shown in \cref{fig:drone_sim_setup}. 
+
+\clearpage %HERE
 
 \begin{figure}
     \centering
@@ -110,18 +112,18 @@ The pose is only required for transferring the created points from the camera fr
 
 \cref{fig:input_synch} schematically shows how the stereo camera depth node handled this shortcoming of asynchronous sensor messages by manually picking the pose which temporally closest corresponds to the image's timestamp. This was possible as the image processing step dominates the computation time of the input handling, and the pose can thus be updated in the meantime to best fit the image timestamps.
 
+\clearpage %HERE
+
 \begin{figure}[h]
 \centering
 \includegraphics[scale=0.26]{images/stereo_camera_depth/input_synchronization.png}
 \caption{Schematic visualization of input synchronization used in the stereo depth node}
 \label{fig:input_synch}
 \end{figure}
-\clearpage %HERE
 
 \subsection{Disparity Creation}\label{subsec:disparity_creation}
 
 The chosen StereoSGBM (Semi-Global Block Matching) algorithm creates a disparity map from two horizontally aligned images using an approach based on Heiko Hirschmüller's stereo approach introduced in \citep{Stereo}. 
-% TODO: explain the StereoSGBm algorithm
 
 The resulting disparity image is shown in \cref{fig:stereo_disp}.
 
@@ -202,28 +204,28 @@ The node's final output is a point cloud generated in the world frame, together 
 
 \clearpage %HERE
 
-\subsubsection{StereoSGBM vs StereoBM}\label{subsec:bmvssgbm}
+% \subsubsection{StereoSGBM vs StereoBM}\label{subsec:bmvssgbm}
 
-Apart from the StereoSGBM implementation, OpenCV provides the StereoBM algorithm, which is generally faster but less precise.
+% Apart from the StereoSGBM implementation, OpenCV provides the StereoBM algorithm, which is generally faster but less precise.
 
-Implementing and comparing the two algorithms, the following results were seen:
+% Implementing and comparing the two algorithms, the following results were seen:
 
-\begin{figure}[h]
-\centering
-\includegraphics[scale=0.23]{images/stereo_camera_depth/stereoBM.png}
-\caption{LSD debug image when using the StereoBM algorithm}
-\label{fig:stereoBM}
-\end{figure}
+% \begin{figure}[h]
+% \centering
+% \includegraphics[scale=0.23]{images/stereo_camera_depth/stereoBM.png}
+% \caption{LSD debug image when using the StereoBM algorithm}
+% \label{fig:stereoBM}
+% \end{figure}
 
-\begin{figure}[h]
-\centering
-\includegraphics[scale=0.23]{images/stereo_camera_depth/stereoSGBM.png}
-\caption{LSD debug image when using the StereoSGBM algorithm}
-\label{fig:stereoSGBM}
-\end{figure}
+% \begin{figure}[h]
+% \centering
+% \includegraphics[scale=0.23]{images/stereo_camera_depth/stereoSGBM.png}
+% \caption{LSD debug image when using the StereoSGBM algorithm}
+% \label{fig:stereoSGBM}
+% \end{figure}
 
-As can be seen in the figures \cref{fig:stereoBM} and \cref{fig:stereoSGBM}, StereoBM did not, in general, perform badly. However, quite regularly, StereoBM produced erroneous points. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital pipeline component; thus, the quality must not be compromised. Therefore, StereoSGBM remained the algorithm for stereo depth creation.
-\clearpage %HERE
+% As can be seen in the figures \cref{fig:stereoBM} and \cref{fig:stereoSGBM}, StereoBM did not, in general, perform badly. However, quite regularly, StereoBM produced erroneous points. In general, a swift algorithm like StereoBM is preferable for our purposes. Nevertheless, precise terrain reconstruction is a vital pipeline component; thus, the quality must not be compromised. Therefore, StereoSGBM remained the algorithm for stereo depth creation.
+% \clearpage %HERE
 
 \subsection{Switching}\label{subsec:switching}
 
@@ -231,21 +233,26 @@ One needs to switch between the two alternatives to achieve the final desired pe
 
 The drone's current altitude above ground is the obvious decision boundary to implement in the switching mechanism. This could be achieved by analyzing the generated point cloud at a given iteration to determine the median altitude, which indicates the altitude above ground. However, this is an avoidable computational overhead.
 
-As mentioned in \cref{sec:state_estimator} the drone has a laser range finder on board. This allows us to estimate the altitude above ground at any given moment without needing image processing.
+As mentioned in \cref{sec:sys_overview}, the drone has a laser range finder on board. This allows us to estimate the altitude above ground at any given moment without needing image processing.
 
-Therefore, the switching is performed using a separate ROS subscriber, which continuously checks the LRF's measurement and activates or deactivates the SFM node and stereo node, respectively.
+Therefore, the switching is performed using a separate ROS subscriber, which continuously checks the LRF's measurement and activates or deactivates the SFM node and stereo node, respectively. This is schematically shown in \cref{fig:switching}.\footnote[1]{BG image source: Adobe Stock images
+% \href{https://www.google.com/url?sa=i&url=https%3A%2F%2Fstock.adobe.com%2Fsearch%3Fk%3Dmars%2Bground&psig=AOvVaw2EEFVKYMdr4tWB3kzVOCwz&ust=1719217248402000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCNius76l8YYDFQAAAAAdAAAAABAE}
+}
 
 \begin{figure}[h]
-    \centering
+    \centering  
     \includegraphics[scale=0.17]{images/stereo_camera_depth/switching.png}
     \caption{Laser Ranger Finder Based Switch between Depth Sources}
+    \label{fig:switching}
 \end{figure}
 
-A second application of this switching is to disable the stereo node until the drone reaches approximately 50 cm altitude. This is because the cameras don't have sufficient overlap to detect matches for the closest points with the largest disparities below that altitude. This is because the StereoSGBM algorithm is implemented with a maximum disparity of 80 pixels. This is shown in \cref{fig:overlap}.
+A second application of this switching is to disable the stereo node until the drone reaches approximately 50 cm altitude. The reason for this is that the camera images don't have sufficient overlap to detect matches for the closest points with the largest disparities below that altitude. This is because the StereoSGBM algorithm is implemented with a maximum disparity of 80 pixels. This is shown in \cref{fig:overlap}.
+
+\clearpage %HERE
 
 \begin{figure}[h]
     \centering
-    \includegraphics[scale=0.17]{images/stereo_camera_depth/overlap.png}
+    \includegraphics[scale=0.5]{images/stereo_camera_depth/overlap.png}
     \caption{Overlap problem at low altitudes: The baseline is indicated in green, and the image footprint in red. The overlap of the two camera images is the reference camera's image footprint minus the baseline.}
     \label{fig:overlap}
 \end{figure}
@@ -275,18 +282,20 @@ For instance, a camera pair with a focal length of 512 pixels and the otherwise 
 
 \subsection{Landing Site Detection without Lateral Motion}
 
-Taking off vertically with the drone in the simulation, the first landing site without lateral motion was found.
+Taking off vertically with the drone in the simulation, the first landing site in the LORNA project without lateral motion was found. \cref{fig:vertical_ls_sim}, \cref{fig:vertical_ls_pc}, and \cref{fig:vertical_ls_lsd} show the drone in the simulation, the generated stereo point cloud and the landing site detected in the LSD debug image respectively.
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.34]{images/stereo_camera_depth/ascent_sim.png}
     \caption{Drone during vertical ascent in simulation}
+    \label{fig:vertical_ls_sim}
 \end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[scale=0.45]{images/stereo_camera_depth/stereo_pointcloud.png}
     \caption{RViz visualization of created point cloud from stereo camera}
+    \label{fig:vertical_ls_pc}
 \end{figure}
 \clearpage %HERE
 
@@ -294,6 +303,7 @@ Taking off vertically with the drone in the simulation, the first landing site w
     \centering
     \includegraphics[scale=0.25]{images/stereo_camera_depth/lsd_ascent.png}
     \caption{LSD Debug output displaying LORNA's first detected landing site during vertical motion}
+    \label{fig:vertical_ls_lsd}
 \end{figure}
 
 \section{Qualitative Practical Analysis}

@@ -9,9 +9,8 @@ At low altitudes, SFM works as well, but surrounded by obstacles, the need for l
 
 To overcome this issue, a range sensor can be used. An obvious consideration is LiDAR. However, a LiDAR sensor produces rather sparse point clouds unless a newer sensor, like Ouster's OS1-128\footnote[1]{https://ouster.com/products/hardware/os1-lidar-sensor} sensor, is used. In that case, there remains the weight issue with the sensor's 495g. As the drone is going to fly in Mar's very thin atmosphere, this isn't feasible. 
 
-Staying with the project's theme of visual sensors, a stereo camera poses a solution as it offers in-place triangulation with a very low weight ($\tilde 10g$). Therefore, in this thesis, I present a stereo camera range node implementation to remedy the shortcomings at low altitudes.
+Staying with the project's theme of visual sensors, a stereo camera poses a solution as it offers in-place triangulation with a very low weight ($\approx 10g$). Therefore, in this thesis, I present a stereo camera range node implementation to remedy the shortcomings at low altitudes.
 
-% This is because the drone does not retain any hazard information past the knowledge of detected landing sites and terrain knowledge from either HiRISE, Ingenuity or the rover which is implicitly used for the mission creation. Therefore, it could be said that the drone flies blindly with respect to obstacles. 
 
 \section{Stereo Camera}\label{sec:stereo_methodology}
 
@@ -30,15 +29,17 @@ The simulated camera sensors used for this had the following properties:
 
 The input to the stereo camera depth node is the two camera images and the drone's base link pose. Processing this information is different from the existing SFM algorithm, so a new depth generation node was implemented. 
 
-As mentioned in \cref{sec:rel_stereo}, state-of-the-art deep learning-based stereo depth methods have considerably higher computational overhead. Due to the embedded CPU's computation limitations, this restricts us to using classical algorithms such as OpenCV's implementations of Heiko Hirschmüller's approach (\citep{Stereo}).
+As mentioned in \cref{sec:relwork}, state-of-the-art deep learning-based stereo depth methods have considerably higher computational overhead. Due to the embedded CPU's computation limitations, this restricts us to using classical algorithms such as OpenCV's widely used implementations of Heiko Hirschmüller's approach (\citep{Stereo}).
 
 The initial goal of the stereo camera implementation of this work was to show proof of concept for this approach of depth detection without lateral motion. Due to personal experience with the OpenCV library, the initial choice of stereo depth method was OpenCV's StereoSGBM algorithm. This algorithm is introduced in \cref{subsec:disparity_creation}.
 
-JPL has its own visual library, JPLV, containing a stereo-matching method that might be an adequate choice for the future. This is because issues with the StereoSGBM algorithm occurred throughout various projects at JPL.%TODO Which were these?
-Also, JPLV contains implementations for the often-used CAHVORE camera model, which OpenCV natively does not support. However, for the time of this work, especially using camera images without distortion, there was no specific reason to switch away from the working StereoSGBM implementation. Therefore, the continuation thereof was pursued.
-
-Furthermore, OpenCV's StereoBM variation was considered, which is, in general, faster but less accurate than StereoSGBM. An analysis thereof is shown in \cref{subsec:bmvssgbm}.
-
+JPL has its own visual library, JPLV, containing a stereo-matching method already in use for SFM, that will likely be a better choice for the future of the stereo depth node as well. This is because of three reasons:
+\begin{itemize}
+    \item JPLV has a faster implementation which is beneficial for Mars missions flown with a limited processor.
+    \item JPLV supports the CAHVORE camera model JPL uses for its visual applications. OpenCV, however, does not.
+    \item Lastly, JPLV was created and is maintained in-house, which is always preferable to open source solutions. 
+\end{itemize}
+However, for the proof of concept of the contributions in this work, especially using camera images without distortion, there was no specific reason to switch away from the preliminary StereoSGBM implementation. Therefore, the continuation thereof was pursued.
 
 \subsection{Stereo Camera Advantages}
 
@@ -76,11 +77,11 @@ For evaluating the stereo depth node as well as proof of concept aspirations of 
 Additionally, GT was important because, at the time of this work, the structure from the motion node showed frequent signs of unreliability. See \cref{subsec:sfm_insufficiencies} for the evaluation thereof.
 
 \subsection{Ground Truth Implementation}
-The simulation already supplied the ground truth pose of the drone's base link through the ROS bridges. When applying the static camera transform to it, this yielded the ground truth camera pose. Using Gazebo's depth camera sensor\footnote[3]{As there was a bug in Gazebo's source code, the depth camera couldn't be used out of the box. More on this in \cref{chapter:appendix:gz_depth_camera}.}, a ground truth point cloud could be created.
+The simulation already supplied the ground truth pose of the drone's base link through the ROS bridges. When applying the static camera transform to it, this yielded the ground truth camera pose. Using Gazebo's depth camera sensor\footnote[3]{As there was a bug in Gazebo's source code, the depth camera couldn't be used out of the box. More on this in \cref{sec:appendix:gz_depth_camera}.}, a ground truth point cloud could be created.
 
 The depth camera creates the image using traced rays, which fill a pixel with the centermost range value that a ray detected.
 
-As expected, the ground truth point clouds yielded very clean and easily interpretable LSD DEMs:
+Looking at \cref{fig:gt_lsd_debug}, we can see that the ground truth point clouds yield very clean and easily interpretable LSD DEMs. \cref{fig:gt_lsd_debug_reference} shows the reference view of the terrain in the Gazebo simulation.
 
 \begin{figure}[h]
 \centering
@@ -101,9 +102,10 @@ As expected, the ground truth point clouds yielded very clean and easily interpr
 
 This is sufficient for a qualitative analysis of the stereo-depth node. However, to use the ground truth as an alternative for SFM, one must ensure that the GT quality is not too good. For instance, SFM, like the stereo camera depth, has a depth error associated with its point cloud creation. At high altitudes, this can lead to the neglect of small (but mission-threatening) rocks. So, in order to test the autonomous landing pipeline with ground truth, I had to make sure that small rocks of about 10 cm in diameter were not seen by the GT at a cruise altitude of 100 m.
 
-For this, the following test was designed.
+For this, the test setup shown in \cref{fig:gt_test_setup1} and \cref{fig:gt_test_setup2} was used.
 
 On the Arroyo map, three cylinders of different sizes were placed. On each cylinder a small rock of 10 cm diameter was placed. The drone was then flown over the test setup at an altitude up to 100 m to detect the scene once with SFM and once using the GT depth. The goal was to find out, whether the ground truth depth quality would have to be artificially decreased, using Gaussian or median filtering for instance, in order to make it more comparable to SFM.
+\clearpage %HERE
 
 \begin{figure}[ht]
 \centering
@@ -114,10 +116,16 @@ On the Arroyo map, three cylinders of different sizes were placed. On each cylin
 
 \begin{figure}[ht]
 \centering
-\includegraphics[scale=0.18]{images/methodology/test_setup2.png}
+\includegraphics[scale=0.195]{images/methodology/test_setup2.png}
 \caption{In the middle of each cylinder, a rock of 10 cm diameter was placed}
 \label{fig:gt_test_setup2}
 \end{figure}
+
+\clearpage %HERE
+
+Looking at \cref{fig:gt_test_gt} and \cref{fig:gt_test_sfm}, one can see that, though the SFM quality is visibly worse, neither SFM nor GT detected the small rocks on the platforms. This can be seen because in both Debug images, the center of the platforms was considered a landing site even though there was the rock, which should definitely prevent the detection of a valid landing site in the very center.
+
+Therefore, the ground truth depth could be used to test the autonomous landing pipeline without making a landing site verification step at low altitudes redundant.
 
 \begin{figure}[ht]
 \centering
@@ -133,9 +141,7 @@ On the Arroyo map, three cylinders of different sizes were placed. On each cylin
 \label{fig:gt_test_sfm}
 \end{figure} 
 
-Looking at \cref{fig:gt_test_gt} and \cref{fig:gt_test_sfm}, one can see that, though the SFM quality is visibly worse, neither SFM nor GT detected the small rocks on the platforms. This can be seen because in both Debug images, the center of the platforms was considered a landing site even though there was the rock, which should definitely prevent the detection of a valid landing site in the very center.
 
-Therefore, the ground truth depth could be used to test the autonomous landing pipeline without making a landing site verification step at low altitudes redundant.
 
 \clearpage %HERE
 \section{Autonomous Landing Procedure}

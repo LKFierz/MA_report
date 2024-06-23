@@ -1,24 +1,46 @@
 \chapter{Conclusion}
 \label{sec:conclusion}
 
-Throughout this work, new contributions were added, and the existing pipeline was used extensively. The following concludes both.
-
-\section{Existing Framework}
+This work added new contributions, and the existing pipeline was used extensively throughout. The following concludes both.
+\section{Visual Pipeline}
 
 \subsection{SFM}
-First and foremost, The structure from motion approach is a valid option to provide accurate depth information at all altitudes. However, as shown in \cref{subsec:sfm_insufficiencies}, the current implementation lacks robustness, often crashing on startup or during yaw rotations. This is a fundamental issue that needs to be resolved, as such an occurrence stops the detection of the landing site.
+First and foremost, The structure from motion approach is a valid approach to create accurate depth information at all altitudes. However, as shown in \cref{subsec:sfm_insufficiencies}, the current implementation lacks robustness, often crashing on startup or during yaw rotations. This is a fundamental issue that needs to be resolved, as such an occurrence stops the detection of the landing site.
 
-Additionally, due to the jumps in the selected reference keyframe in SFM's stereo implementation, LSD's map is often partially erased, leading to fewer landing sites being detected.
+Additionally, due to the jumps in the selected reference keyframe in SFM's stereo implementation, LSD's map is often partially erased, preventing landing sites from being detected until the map cells have sufficiently converged again.
 
 \subsection{LSD}
-On the other hand, the landing site detection mechanism showed great robustness and quality regardless of the depth source it was provided with or the altitudes flown at. When supplied by different depth sources, it merged the information well and lastly, as tested in \cref{subsec:rough_coverage} and \cref{subsec:rough_map_rw}, LSD didn't detect landing sites where there should be none detected, and it did detect sites upon seeing good candidates.
+The landing site detection mechanism showed great robustness and quality regardless of the depth source it was provided with or the altitudes flown at. To detect landing sites at high altitudes, sufficient DEM layers must be used to enable adequate cell sizes at the coarsest layer.
 
+When supplied by different depth sources, it merged the information well and lastly, as tested in \cref{subsec:rough_coverage} and \cref{subsec:rough_map_rw}, LSD didn't detect landing sites where there should be none detected, and it did detect sites upon seeing good candidates.
 
+In this work, LSD's output was enhanced to not only return a single landing site's location but instead provide three landing sites which are the non-maximum suppressed peaks selected on the binary landing site map. Additionally, these landing sites are assigned further properties like their size, roughness, and slope values. This aids the autonomy in making more informed landing site selection decisions and comparatively weighing the different given characteristics against each other according to the current situation. Furthermore, a new quantity, a landing site's obstacle altitude, was introduced. This allows for efficiently determining the necessary clearing altitude when traversing to a landing site in a fail-safe manner.
 
-\section{Contributions}
+\subsection{Note on the Simulator}
 
-To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to perceive depth instantaneously and statically. A laser range finder-based switching mechanism allows for the mutually exclusive usage of SFM and stereo, resulting in constrained computational overhead. The implementation showed very convincing results. This was shown by comparing LSD debug images when supplied with the stereo camera depth and depth camera ground truth. The depth quality and the overall robustness of this alternative proved very satisfactory, validating this option for usage at low altitudes.
+The Gazebo simulator used in this project offers both rendering and a physics engine. It is user-friendly and can be set up quickly for less complex endeavors. However, for our more complex goal, Gazebo proved very cumbersome. 
 
-Lastly, an autonomous landing procedure using the visual landing site detection pipeline was introduced.  The adaptive nature of the behavior tree structure enables the capable handling of critical situations, thus enabling the drone to land repeatedly and safely in unknown terrain.
+\begin{itemize}
+    \item First, Gazebo is an open-source software, so only very limited documentation can be found.
+    \item The simulator's versioning and compatibility with other software are confusing. This often leads to online documentation not being up-to-date anymore and to the necessity of additional software entities to bridge the gaps with other nodes.
+    \item There were bugs in the source code implementation of the depth camera as described in \cref{sec:appendix:gz_depth_camera}. These could be resolved, but issues like these rattled our trust in the simulator.
+\end{itemize}
+
+\section{Stereo Camera Depth}
+
+To avoid the necessity of lateral motion at low altitudes, a stereo camera was implemented to perceive depth instantaneously and statically. A laser range finder-based switching mechanism allows for the mutually exclusive usage of SFM and stereo-vision, reducing computational overhead. The stereo camera depth implementation showed very convincing results. This was established by comparing LSD debug images when supplied with the stereo camera depth and depth camera ground truth. Furthermore, utilizing the stereo camera depth node at low altitudes and flying autonomous missions, previously detected landing sites were successfully verified or invalidated based on their re-detection status.
+
+\section{Autonomous Landing Pipeline}
+An autonomous landing behavior was implemented, leveraging the novel LSD output and the behavior tree architecture within the autonomy framework.
+
+The autonomy's interface with the LSD was updated, introducing new mechanisms like re-detection, verification, and banishment when handling landing sites. This allows for both the refinement of landing site information and the double-checking of a selected landing zone before the final descent.
+
+New modular actions for smooth, safe, and efficient landing preparations were introduced, and the reactive landing behavior was implemented as a behavior tree.
+
+Extensive tests were performed in the Gazebo simulator, using a Mars-like map and a control map without landing sites. Repeated flights were performed with randomized waypoints and fixed and random UAV spawn locations. Despite rare unrelated flight controller connection issues, the runs showed promising results when using ground truth depth and stereo camera depth at low altitudes. 
+
+When flying the test missions using structure from motion with the aforementioned current issues, 77 out of 100 flights were successful. The remaining flights either lost connection to the flight controller or timed out verifying the landing sites at low altitudes because the SFM data wasn't overridden in time. Not a single flight crashed, which, considering the current state of SFM, speaks strongly for the pipeline's robustness.\footnote[1]{It has to be noted that the timeout occurred due to the limited time assigned to such a randomized test. In practice, a low battery state would eventually initiate the land-at-home action.}
+
+Furthermore, when flying over hazardous terrain that did not have any landing sites on it and spawning synthetic high-quality landing sites over which a mission was flown, the drone landed predominantly on the platform below the last mission waypoint, indicating a well-performing landing site selection mechanism. When flying completely random missions on the otherwise same setup, the drone would perform landing site search patterns starting from randomized center positions. Comparing two such experiments, one flown with a search pattern radius of 20 m and the other with 1 m, the rotorcraft went home 34 and 54 times, respectively. This demonstrates the impact of the landing site search pattern action if no landing sites were detected.
 
 Overall, the work shown in this thesis builds upon the existing LORNA project and combines several modules to achieve an autonomous landing pipeline suited for the challenge of Mars exploration. 

@@ -48,3 +48,5 @@ VerBehSeq
 
 Jezero
 Homography
+planarity
+pathing

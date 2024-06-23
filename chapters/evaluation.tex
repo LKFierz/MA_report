@@ -4,15 +4,39 @@
 Before analyzing the work done in this thesis, the depth acquisition pipeline, consisting of the SFM and LSD algorithms, is discussed.
 
 \section{SFM Insufficiencies}\label{subsec:sfm_insufficiencies}
-SFM is part of the LORNA pipeline and proved to be a valid option for the tackled endeavor. Before this work however, it was never tested extensively, especially at high altitudes (100 m).
+SFM is part of the LORNA pipeline and promises to be a valid option for the tackled endeavor. Before this work however, it was never tested extensively, especially at high altitudes (100 m).
 
-Though performing well when initialized successfully at low to mid-altitudes, SFM often had issues during startup and showed frequent insufficiencies when the drone rotated or when switching the keyframes used for the stereo at high altitudes.
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.14]{images/evaluation/SFM_issues/SFM_quality.png}
+\caption{SFM point cloud when initialized correctly - left: SFM's input image, right: SFM's point cloud output visualized in rviz}
+\label{fig:sfm_quality}
+\end{figure}
 
-Unfortunately, a lack of time prevented me from investigating these issues. Nevertheless, the shortcomings of the current standing are laid out to the best of my knowledge in the following to hopefully be resolved in future work.
+Looking at \cref{fig:sfm_quality}, it is fair to say that SFM is capable of creating accurate point clouds at high altitudes. Though performing well when initialized successfully, SFM often had issues during startup and showed frequent insufficiencies during rotations or, in general, high-altitude flights.
 
-First, SFM showed a substantial lack of robustness when being initialized. If the drone was rotating during initialization, SFM would either crash or not start up. \cref{fig:SFM_issue_1} shows an image of a corrupted DEM due to bad SFM information.
+Unfortunately, a lack of time prevented me from investigating these issues in detail. Nevertheless, the shortcomings of the current standing are laid out to the best of my knowledge in the following to hopefully be resolved in future work.
 
-%TODO: show SFM point clouds.
+SFM's main issues occurred in the following three scenarios:
+
+\begin{itemize}
+    \item During startup
+
+    Frequently, when starting SFM's keyframe recording, it would not start or output corrupted data, especially when there was slight rotation in the drone's movement. When making sure that SFM is initialized during perfect lateral motion, the initialization succeeded most often. This leads to a strong suspicion that SFM handles rotations poorly during initialization.
+    \item When changing direction
+
+    Most often, the drone is in vertical or straight, lateral movement. However, it has to turn between waypoints or landing site attempts. Currently, SFM isn't able to handle these cases well. As for the initialization, it either stops or outputs faulty data. A demonstration of SFM outputting point clouds and stopping upon changing direction is shown in \cref{fig:sfm_stop}. An example of corrupted input data is shown in \cref{fig:sfm_fault} and \cref{fig:SFM_issue_1}. Note how in \cref{fig:SFM_issue_1} SFM started producing invalid data after a map move. Furthermore, \cref{fig:sfm_pc_fault1} and \cref{fig:sfm_pc_fault2} depict two instances of faulty point clouds created by SFM.
+    \item During high-altitude flights
+    
+    As mentioned in \cref{subsubsec:SFM_stereo}, SFM often creates point clouds using the same keyframe until it can't establish sufficient image overlap with incoming images anymore and the oldest keyframe is switched. At high altitudes, this leads to frequent, large map movements in LSD as outlined in \cref{subsubsec:setup:aggregation}. As a result of this, LSD's elevation map has a harder time converging, and fewer landing sites are detected. This phenomenon is shown in \cref{fig:SFM_movement1}, \cref{sec:eval_LSD} and \cref{sec:layers}.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.25]{images/evaluation/SFM_issues/sfm_stopped.png}
+    \caption{LSD debug image after changing direction: SFM stopped to generate stereo points so that the LSD map is moved without new information coming in.}
+    \label{fig:sfm_stop}
+\end{figure}
 
 \begin{figure}[h]
     \centering
@@ -21,27 +45,39 @@ First, SFM showed a substantial lack of robustness when being initialized. If th
     \label{fig:SFM_issue_1}
 \end{figure} 
 
-After initialization, SFM was still prone to producing corrupted data when rotating between mission waypoints or landing site attempts. Bad SFM results are fed into LSD's elevation map and are retained until these points are overruled. Therefore, a single corrupted SFM point cloud lastingly impacts the DEM and thus LSD's capability of detecting high-quality landing sites.
-
-Another pressing issue is SFM's manner of handling motion at high altitudes:
-
-As described in \cref{subsubsec:SFM_stereo}, SFM stays at the same reference keyframe for stereo depth creation until that keyframe's overlap with the new image is too small, and the keyframe is switched out. In practice, this can be seen as jumps in the LSD algorithm, where the new point cloud's center is at a new location far enough from the previous center that a significant shift of the rolling buffer has to be performed, and a large part of the DEM has to be filled again. During this time, no landing sites are detected.
-
-This phenomenon can be seen in \cref{fig:SFM_movement1}. 
-
 \begin{figure}[h]
-\centering
-\includegraphics[scale=0.25]{images/evaluation/SFM_issues/Screenshot from 2024-06-20 14-41-06.png}
-\caption{Intermediate LSD state after map movement}
-\label{fig:SFM_movement1}
+    \centering
+    \includegraphics[scale=0.25]{images/evaluation/SFM_issues/Screenshot from 2024-06-20 14-41-06.png}
+    \caption{Intermediate LSD state after map movement}
+    \label{fig:SFM_movement1}
 \end{figure}
 
-%TODO show convergence after the bad shift again
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.24]{images/evaluation/SFM_issues/sfm_fail.png}
+    \caption{Faulty SFM data points generated during flight}
+    \label{fig:sfm_fault}
+\end{figure}
 
-The issue with large map shifts is that most of the DEM's information is removed, which delays landing site detection on most of the map.
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.20]{images/evaluation/SFM_issues/sfm_pc_fail1.png}
+    \caption{Visualization of faulty SFM point cloud}
+    \label{fig:sfm_pc_fault1}
+\end{figure}
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.15]{images/evaluation/SFM_issues/sfm_pc_fail2.png}
+    \caption{Additional visualization of faulty SFM point cloud}
+    \label{fig:sfm_pc_fault2}
+\end{figure}
+
+\clearpage%HERE
 
 \section{LSD Analysis}\label{sec:eval_LSD}
+
+\subsection{Map Coverage}
 
 Given high-quality depth clouds, the LSD algorithm can accurately detect valid landing sites without fail.
 
@@ -54,33 +90,36 @@ LSD's consideration of the same terrain at different resolutions leads to a very
 \label{fig:LSD_center_usage}
 \end{figure}
 
+\subsection{Number of Layers}
+
 Due to a fixed number of layers, the image points detected at high altitudes have a pixel footprint that exceeds that of a cell from the coarsest layer. Therefore, the point cloud input to LSD is sparse and leaves many cells empty. Empty cells prevent the detection of landing sites in the neighborhood. The smaller the coarsest layer's cell footprints, the stronger the effect. \cref{fig:lsd_2_layers_1} shows the LSD DEM before convergence when using 2 layers at 100 m altitude.
 
 The lowest resolution layer has a fixed resolution of 0.05 m / cell. Considering the 4-fold division of a cell when moving to a higher resolution layer, the resolution at the top level is 0.2 m / cell. On the other hand, at 100 m altitude with the camera parameters introduced in \cref{sec:stereo_methodology}, the tracker camera's pixel footprint is 0.363 m/px. 
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/2_layers_1.png}
+\includegraphics[scale=0.24]{images/evaluation/2_layers_1.png}
 \caption{LSD DEM at 100 m right after initialization with only 2 layers}
 \label{fig:lsd_2_layers_1}
 \end{figure}
 
 After a while, the map is filled with further measurements as shown in \cref{fig:lsd_2_layers_2}.
 
+
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/2_layers_2.png}
+\includegraphics[scale=0.24]{images/evaluation/2_layers_2.png}
 \caption{DEM at 100 m with 2 layers after some conversion time}
 \label{fig:lsd_2_layers_2}
 \end{figure}
 
-However, due to the map movement mentioned in \cref{subsec:sfm_insufficiencies}, most of the DEM is erased before the DEM converges sufficiently. 
+\clearpage%HERE
 
-This is shown in \cref{fig:lsd_2_layers_3}. In practice, only very few landing sites are detected using these parameters. 
+However, due to the map movement mentioned in \cref{subsec:sfm_insufficiencies}, most of the DEM is erased before the DEM converges sufficiently.This is shown in \cref{fig:lsd_2_layers_3}. 
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/2_layers_3.png}
+\includegraphics[scale=0.24]{images/evaluation/2_layers_3.png}
 \caption{DEM at 100 m with 2 layers after map movement}
 \label{fig:lsd_2_layers_3}
 \end{figure}
@@ -89,14 +128,14 @@ A remedy for this is the usage of more layers, resulting in a decreased resoluti
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.24]{images/evaluation/LSD_layer_analysis/4_layers_1.png}
+\includegraphics[scale=0.24]{images/evaluation/4_layers_1.png}
 \caption{LSD DEM at 100 m with 4 layers}
 \label{fig:lsd_4_layers_1}
 \end{figure}
 
 Note that more layers lead to a stronger pooling effect at the highest resolution layers. In other words, the sparsity of the DEM when using LSD with fewer layers is counteracted by the enhanced pooling of further layers, leading to a high-resolution layer filled with the same coarse information present at lower layers. Due to the incoming point cloud's large point footprint, there is no higher-resolution information to be had. Therefore, resolving the sparse maps with coarse information does not denote a loss of information. At high altitudes, we want to find areas with promising landing sites. These don't have to be perfect landing sites themselves yet and serve more as a signifier for later refinement. Thus, using lower-resolution information is perfectly nominal.
 
-A more detailed analysis of LSD with various numbers of layers can be found in \cref{chapter:appendix:lSD_layer_analysis}.
+For a visual side by side comparison when using 2, 3, or 4 layers, see \cref{sec:layers}.
 
 \section{Experimental Setup}\label{sec:exp_setup}
 
@@ -110,16 +149,17 @@ The performed experiments were flown on the following two maps:
         \includegraphics[scale=0.5]{images/evaluation/arroyo.png}
         \caption{Map of the Arroyo Seco area outside the Jet Propulsion Laboratory}
     \end{figure}
+    \clearpage%HERE
     \begin{figure}[h]
         \centering
-        \includegraphics[scale=0.23]{images/evaluation/arroyo_map.png}
+        \includegraphics[scale=0.20]{images/evaluation/arroyo_map.png}
         \caption{Close Up of the Arroyo Map}
         \label{fig:sim_view_arroyo}
     \end{figure}
     \item Rough Test Map - A controlled environment designed to prevent LSD from detecting any landing site unless a landing platform is specifically spawned. It was created using Blender and applying white noise perturbations to the elevation of a plane. 
     \begin{figure}[h]
         \centering
-        \includegraphics[scale=0.285]{images/evaluation/rough_test_map.png}
+        \includegraphics[scale=0.27]{images/evaluation/rough_test_map.png}
         \caption{Synthetically created, hazardous map with no landing sites apart from inserted landing platforms.}
     \end{figure}
     \begin{figure}[h]
@@ -134,6 +174,7 @@ The performed experiments were flown on the following two maps:
         \label{fig:rough_map_platform}
     \end{figure}
 \end{itemize}
+\clearpage%HERE
 \subsection{Drone Spawn}
 The drone was either spawned repeatedly from a default location on the ground (The start location from when the actual field tests were performed) or from a random location. For a simple way of avoiding terrain collisions, the drone was spawned on a randomly positioned disk at 40 m altitude. The start disk's size was only 0.5 m in diameter which prevented it from being considered too good of a landing site by LSD. This is important because the platform implicitly gains quality since it is located higher up than the terrain, leading to a lower distance to the drone when flying at mission altitude.
 \begin{figure}[h]
@@ -190,19 +231,10 @@ Therefore, to conclude the listing of the possible success states:
     \item Crash: Either the roll or pitch angle of the drone exceeded the predetermined threshold of 70 degrees. This is a definite failure of the pipeline.
     \item Home landing: The drone did not settle at a perceived landing site and returned to the home position instead. On a map with sufficient landing opportunities, this indicates a failure. When actually not traversing terrain with valid landing sites, as was often the case for the rough terrain shown in \cref{subsec:rough_map_rw}, landing home is the desired behavior.
 \end{itemize}
-\clearpage
 
 
 \subsection{Visual Analysis}
 To further analyze the randomized flights in a bit more detail, visual landing attempt projections are used. Such an analysis image is shown in \cref{fig:landing_attempts_dummy}.
-
-\begin{figure}[h]
-    \begin{center}
-        \includegraphics[scale=0.5]{images/evaluation/landings_random_WP_GT.png}
-        \caption{Landing Attempt dummy image - Green: successful landing, Yellow: verification failure, Blue: landing at home position}
-        \label{fig:landing_attempts_dummy}
-    \end{center}
-\end{figure}
 
 The green points indicate successful verifications, which lead to the initiation of the landing action shortly afterward. (If no rotation above a failure threshold was detected, this is considered a successful landing.) 
 
@@ -216,15 +248,23 @@ If multiple landing attempts are made, connection lines are drawn between the fa
 
 It has to be noted that these plots were generated using non-orthographic background images, and the actual landings took place at locations slightly closer to the image center.
 
-As the created points are rather large, hereafter is the empty background image for reference:
+\begin{figure}[h]
+    \begin{center}
+        \includegraphics[scale=0.5]{images/evaluation/landings_random_WP_GT.png}
+        \caption{Landing Attempt dummy image - Green: successful landing, Yellow: verification failure, Blue: landing at home position}
+        \label{fig:landing_attempts_dummy}
+    \end{center}
+\end{figure}
+
+As the created points are rather large, \cref{fig:Arroyo_BG} shows the empty background image for reference.
 
 \begin{figure}[h]
 \centering
-\includegraphics[scale=0.5]{images/evaluation/high_100m_arroyo_grid.png}
+\includegraphics[scale=0.4]{images/evaluation/high_100m_arroyo_grid.png}
 \caption{Non-orthographic Arroyo background image for visual evaluation of the test flights}
 \label{fig:Arroyo_BG}
 \end{figure}
-
+\clearpage%HERE
 
 \section{Test Flights}\label{sec:test_flights}
 
@@ -236,7 +276,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
 \begin{table}[h]
     \begin{center}
-     \caption{Results with fixed takeoff and random waypoint}\vspace{1ex}
+     \caption{Results with fixed takeoff and random waypoint: Con. Loss stands for connection loss of the off-board mode.}\vspace{1ex}
      \label{tab:result_random_waypoint}
      \begin{tabular}{|c|c|c|c|c|}
      \hline
@@ -244,7 +284,6 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
      100 & 93 & 7 & 0 & 0 \\
      \hline
      \end{tabular}
-     \caption{The outcomes of the flights performed. Con. Loss stands for connection loss of the off-board mode.}
     \end{center}
     \end{table}
 
@@ -275,10 +314,8 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     \cref{tab:result_random_waypoint} shows the numeric outcome of the flights. 7 timeouts occurred, but each performed flight by the autonomy was a success, landing safely and controlled. No home landings were necessary, which, as described above, indicates a very robust LSD performance. A high number of flights where two landing site verification attempts were performed is also well within acceptable boundaries because the first landing site might as well be used as an indicator to draw the drone closer to an area where high-quality sites can be detected using the stereo camera. Twice it was the case that 3 landing attempts were needed.
 
     \subsubsection{Visual Discussion}
-    Let's consider the landing image \ref{fig:landing_attempts_random_WP}. The final landing sites indicated in green span exclusively decent landing areas. The verification attempts that fell short are indicated with yellow and annotated by a line connection to the successful attempt thereafter. Subsequent landing sites were always detected short distances away from failed candidates which is exactly the correct behavior in order not to lose time pursuing a far away follow-up landing site. As indicated in \cref{subsec:heuristics}, this is thanks to the verification altitude, which incentivizes the selection of other landing sites detected at the current verification altitude. Lastly, landing attempts performed before before losing the connection to the flight controller are indicated in red. 
+    Let's consider the landing image \ref{fig:landing_attempts_random_WP}. The final landing sites indicated in green span exclusively decent landing areas. The verification attempts that fell short are indicated with yellow and annotated by a line connection to the successful attempt thereafter. Subsequent landing sites were always detected short distances away from failed candidates which is exactly the correct behavior in order not to lose time pursuing a far away follow-up landing site. As indicated in \cref{subsec:heuristics}, this is thanks to the verification altitude, which incentivizes the selection of other landing sites detected at the current verification altitude. Lastly, landing attempts performed before losing the connection to the flight controller are indicated in red. Note, an example log file of a flight which lost connection to the flight controller is shown in \cref{sec:specific_runs}.
     
-    %TODO: make appendix with autonomy log of failed runs and show timeout.
-
     The last thing to mention is the clustering of the landing sites around the takeoff location. The reason for this is twofold:
     \begin{itemize}
         \item Quality: 
@@ -331,6 +368,8 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 % %TODO
 %     \subsubsection{Visual Discussion}
 % %TODO
+
+\clearpage%HERE
 
 \subsection{Arroyo - Randomized Takeoff and Waypoints}\label{subsec:compl_rand}
 
@@ -462,7 +501,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
         The same happened when the first platform could be seen during ascent and was relatively close to the last waypoint.
 
-
+\clearpage%HERE
 \subsection{Rough Map - Random Waypoints}\label{subsec:rough_map_rw}
 
     \begin{figure}[h]
@@ -559,6 +598,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     6 times a second landing site had to be chosen. These were all picked on the same platform the initial landing was attempted. 
     
+\clearpage%HERE
 
 \subsection{Arroyo - Randomized Takeoff and Mission with SFM}\label{subsec:SFM_complete_rand}
 
@@ -573,7 +613,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
             \begin{tabular}{|c|c|c|c|c|}
             \hline
             \# Flights & \# Successes & \# Con. Losses & \# Timeouts & \# Home Landing\\ \hline \hline
-            100 & 77 & 18 & 0 & 5 \\ 
+            100 & 77 & 18 & 5 & 0 \\ 
             \hline
             \end{tabular}
         \end{center}
@@ -594,7 +634,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
 
     \begin{figure}[h]
     \centering
-    \includegraphics[scale=0.5]{images/evaluation/landing_SFM.png}
+    \includegraphics[scale=0.45]{images/evaluation/landing_SFM.png}
     \caption{Landing attempt locations when flying a mission with randomized drone spawns and randomized waypoints with SFM}
     \label{fig:land_SFM} 
     \end{figure}
@@ -605,7 +645,7 @@ When starting 100 times from the fixed position indicated in \cref{fig:fixed_sta
     
     Additionally, the nominal procedure timed out five times, meaning that numerous landing site verifications were necessary, which ultimately prevented the flight from completing within the 10 minutes before the next iteration was started. 
 
-    This occurred because of two reasons:
+    This occurred because of the following reasons:
 
     \begin{itemize}
         \item The landing site proposals supplied by SFM are of less quality than the ground truth leading to a higher probability of necessitating the selection of another landing site. 
